@@ -1,0 +1,493 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>渠道核查在线管理平台</title>
+<link rel="shortcut icon" href="favicon.ico"/>
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">  
+  <link rel="stylesheet" href="css/layui.css"  media="all">
+  <link rel="stylesheet" href="css/common.css"  media="all">
+  <link rel="stylesheet" href="css/paperInfor.css"  media="all">
+
+  <script type="text/javascript" src="js/jquery_2-1-0_min.js"  charset="utf-8"></script>
+  <script src="js/Common.js" type="text/javascript"></script>
+  <script src="js/layui.js" type="text/javascript" charset="utf-8"></script>
+
+  <script type="text/javascript" language="javascript">
+
+
+      layui.use('element', function () {
+          var element = layui.element(); //导航的hover效果、二级菜单等功能，需要依赖element模块
+
+          //监听导航点击
+          element.on('nav(demo)', function (elem) {
+              //console.log(elem)
+              layer.msg(elem.text());
+          });
+
+      });
+
+      layui.use(['form', 'layedit', 'laydate'], function () {
+          var form = layui.form()
+  , layer = layui.layer
+  , layedit = layui.layedit
+  , laydate = layui.laydate;
+
+          var start = {
+              istoday: false
+    , choose: function (datas) {
+        end.min = datas; //开始日选好后，重置结束日的最小日期
+        end.start = datas //将结束日的初始值设定为开始日
+    }
+          };
+
+          var end = {
+              istoday: false
+    , choose: function (datas) {
+        start.max = datas; //结束日选好后，重置开始日的最大日期
+    }
+          };
+          document.getElementById('calFromDate').onclick = function () {
+              start.elem = this;
+              laydate(start);
+          }
+          document.getElementById('calToDate').onclick = function () {
+              end.elem = this
+              laydate(end);
+          }
+      });
+  
+</script>
+
+  <script type="text/javascript" language="javascript">
+
+      $(function () {
+          $.ajaxSettings.async = false;
+
+          LoadProjectFrequency();
+
+          GetBusinessConfigValues($("#ddlUploadType"), "UploadType");
+
+          LoadData();
+
+          LoadPageStatus();
+
+          $("#btnCancel").click(function () {
+              if ($("#hfID").val() != "") {
+                  var url = window.location.href.split('?')[0];
+                  window.location = url + "?id=" + $("#hfID").val() + "&st=1";
+              }
+              else {
+                  $("#btnBack").click();
+              }
+          });
+          $("#btnSave").click(function () {
+              if (DoValidate() == false) {
+                  return false;
+              }
+              DoSave();
+          });
+          $("#btnDelete").click(function () {
+              layer.confirm('您确定要删除该问卷模板吗？', {
+                  btn: ['确定', '取消']
+              }, function (index) {
+                  layer.close(index);
+                  DoDelete();
+              });
+          });
+          $("#btnEdit").click(function () {
+              var url = window.location.href.split('?')[0];
+              window.location = url + "?id=" + $("#hfID").val() + "&st=2";
+          });
+          $("#btnBack").click(function () {
+              window.location = "QuestionnaireList.htm";
+          });
+          $("#btnViewQuestions").click(function () {
+              var url = "PaperQuestion.htm";
+              window.location = url + "?id=" + $("#hfID").val();
+          });
+
+          if (userType != 1 && userType != 7 && userType != 8) {
+              $("#btnEdit").hide();
+              $("#btnDelete").hide();
+              $("#btnViewQuestions").hide();
+          }
+
+          $.ajaxSettings.async = true;
+      });
+
+      function LoadProjectFrequency() {
+          var date = new Date();
+          var url = '../Logic/Project.ashx';
+          $.getJSON(url, { type: "9", date: date }, function (data) {
+              $.each(data, function (i, item) {
+                  $("#ddlFrequency").append("<option value='" + item.ID + "'>" + item.Name + "</option>");
+              });
+          });
+      }
+
+      function LoadPageStatus() {
+          //0 - add new status
+          //1 - view saved status
+          //2 - editing status
+          var st = getUrlParam("st");
+          if (st == "" || st == null) {
+              st = "0";
+          }
+          SetControlStatus(st);
+      }
+
+      function SetPageTabs(status) {
+          if (status == "0") {
+              $("#tabCurrent").text("新建问卷");
+          }
+          else if (status == "1") {
+              $("#tabCurrent").text("查看问卷");
+          }
+          else {
+              $("#tabCurrent").text("编辑问卷");
+          }
+      }
+
+      function SetControlStatus(status) {
+          SetPageTabs(status);
+          if (status == "0" || status == "2") {
+              //add new status / editing status
+              $("#infoPanel").hide();
+              $("#txtName").removeAttr("disabled");
+              $("#calFromDate").removeAttr("disabled");
+              $("#calToDate").removeAttr("disabled");
+              $("#txtScore").removeAttr("disabled");
+              $("#txtSampleNumber").removeAttr("disabled");
+              $("#ddlFrequency").removeAttr("disabled");
+              $("#ddlUploadType").removeAttr("disabled");
+
+              $("#txtDescription").removeAttr("disabled");
+              $("#cbxAutoTickCorrectOption").removeAttr("disabled");
+              $("#cbxAutoRefreshPage").removeAttr("disabled");
+
+              $("#btnCancel").show();
+              $("#btnSave").show();
+              $("#btnEdit").hide();
+              $("#btnBack").hide();
+              $("#btnDelete").hide();
+              $("#btnViewQuestions").hide();
+          }
+          else {
+              //view saved status
+              $("#infoPanel").show();
+              $("#txtName").attr("disabled", true);
+              $("#calFromDate").attr("disabled", true);
+              $("#calToDate").attr("disabled", true);
+              $("#txtScore").attr("disabled", true);
+              $("#txtSampleNumber").attr("disabled", true);
+              $("#ddlFrequency").attr("disabled", true);
+              $("#ddlUploadType").attr("disabled", true);
+              $("#txtDescription").attr("disabled", true);
+              $("#cbxAutoTickCorrectOption").attr("disabled", true);
+              $("#cbxAutoRefreshPage").attr("disabled", true);
+
+              $("#btnCancel").hide();
+              $("#btnSave").hide();
+              $("#btnEdit").show();
+              $("#btnBack").show();
+              $("#btnDelete").show();
+              $("#btnViewQuestions").show();
+          }
+      }
+
+      function DoValidate() {
+          var name = $("#txtName").val();
+          var fromdate = $("#calFromDate").val();
+          var todate = $("#calToDate").val();
+          var frequency = $("#ddlFrequency").val();
+          var uploadType = $("#ddlUploadType").val();
+
+          var msgs = [];
+          if (name == "") {
+              msgs.push("请输入<b>问卷模板名称</b>.");
+          }
+          if (fromdate == "") {
+              msgs.push("请输入问卷的<b>开始日期</b>.");
+          }
+          if (todate == "") {
+              msgs.push("请输入问卷的<b>截止日期</b>.");
+          }
+          if (frequency == "") {
+              msgs.push("请选择问卷的<b>执行频次</b>.");
+          }
+          if (uploadType == "") {
+              msgs.push("请选择问卷的<b>录入方式</b>.");
+          }
+          if (msgs.length > 0) {
+              var message = "";
+              $.each(msgs, function (n, value) {
+                  message += ((n + 1) + "." + value);
+                  message += "<br/>";
+              });
+              layer.alert(message);
+              return false;
+          }
+          else {
+              return true;
+          }
+      }
+
+      function DoSave() {
+          var name = $("#txtName").val();
+          var fromdate = $("#calFromDate").val();
+          var todate = $("#calToDate").val();
+          var typeID = $("#ddlType").val();
+          var coreUserID = $("#ddlCoreUsers").val();
+          var primaryApplyUserID = $("#ddlPrimaryApplyUsers").val();
+          var background = $("#txtBackground").text();
+          var description = $("#txtDescription").text();
+          var score = $("#txtScore").val();
+          var sampleNumber = $("#txtSampleNumber").val();
+          var frequency = $("#ddlFrequency").val();
+          var uploadType = $("#ddlUploadType").val();
+          var bAutoTickCorrectOption = $("#cbxAutoTickCorrectOption").prop("checked");
+          var bAutoRefreshPage = $("#cbxAutoRefreshPage").prop("checked");
+
+          var id = $("#hfID").val();
+          var date = new Date();
+          var url = '../Logic/Questionnaire.ashx';
+          $.ajax({
+              url: url,
+              data: {
+                  Type: 3,
+                  Date: date,
+                  id: id,
+                  name: name,
+                  fromdate: fromdate,
+                  todate: todate,
+                  typeID: typeID,
+                  coreUserID: coreUserID,
+                  primaryApplyUserID: primaryApplyUserID,
+                  background: background,
+                  description: description,
+                  score: score,
+                  sampleNumber: sampleNumber,
+                  frequency: frequency,
+                  bAutoTickCorrectOption: bAutoTickCorrectOption,
+                  bAutoRefreshPage: bAutoRefreshPage,
+                  uploadType: uploadType
+              },
+              dataType: "json",
+              type: "POST",
+              traditional: true,
+              success: function (data) {
+                  $("#hfID").val(data);
+                  layer.alert("保存成功！", function () { $("#btnCancel").click(); });
+              },
+              error: function () {
+                  layer.alert("保存失败！");
+              }
+          });
+          return true;
+
+      }
+
+      function DoDelete() {
+          var id = $("#hfID").val();
+          var date = new Date();
+          var url = '../Logic/Questionnaire.ashx';
+          $.ajax({
+              url: url,
+              data: {
+                  Type: 4,
+                  Date: date,
+                  id: id
+              },
+              dataType: "json",
+              type: "POST",
+              traditional: true,
+              success: function (data) {
+                  if (data == "1") {
+                      $("#btnBack").click();
+                  }
+                  else {
+                      layer.alert("删除失败！");
+                  }
+              },
+              error: function () {
+                  layer.alert("删除失败！");
+              }
+          });
+      }
+
+      function LoadData() {
+          var id = getUrlParam("id");
+          if (id == "" || id == null) {
+              return;
+          }
+          $("#hfID").val(id);
+
+          var date = new Date();
+          var url = '../Logic/Questionnaire.ashx';
+          $.getJSON(url, { type: "2", date: date, id: id }, function (data) {
+              var pdo = data[0];
+              $("#txtName").val(pdo.Name);
+              $("#calFromDate").val(jsonDateFormat(pdo.FromDate));
+              $("#calToDate").val(jsonDateFormat(pdo.ToDate));
+
+              $("#txtScore").val(pdo.TotalScore);
+              $("#txtSampleNumber").val(pdo.SampleNumber);
+              $("#ddlFrequency").val(pdo.Frequency);
+              $("#ddlUploadType").val(pdo.UploadType);
+              $("#txtDescription").val(pdo.Description);
+
+              $("#cbxAutoTickCorrectOption").prop("checked", pdo.BAutoTickCorrectOption);
+              $("#cbxAutoRefreshPage").prop("checked", pdo.BAutoRefreshPage);
+
+              $("#lblStatus").text(pdo.ProjectStatus);
+              if(pdo.EditingInfo != "" && pdo.EditingInfo != null){
+                $("#lblLatestEditing").text("最后修改：" + pdo.EditingInfo);
+              }
+              $("#lblCreatingTime").text("创建于：" + pdo.CreatingInfo);
+          });
+      }     
+  
+  </script>
+
+</head>
+<body>
+<!--母版页-->
+<div id="CommonTop"></div>
+<div id="CommonLeft"></div>
+<script type="text/javascript">
+    $(function () {
+        $("#CommonTop").load("CommonTop.htm?s=" + (new Date()).toLocaleTimeString());
+        LoadCurrentProjectLeft();
+        $("#CommonProjectTop").load("CommonProjectTop.htm");
+    });
+</script>
+<!--内容页-->
+<div class="layui-tab layui-tab-brief" lay-filter="demoTitle">
+    <div id="CommonProjectTop"></div>
+	<!---------------------------------------以下每个页面更换-------------------------------------------->
+    <div class="layui-body layui-tab-content crightMain">
+    	<div class="crightMainTitle">
+    		<div class="layui-tab lpaperItitle">
+			  <ul class="layui-tab-title">
+                <li><a href="QuestionnaireList.htm">所有问卷</a></li>		
+			    <li class="layui-this" id="tabCurrent">新建问卷</li>
+			  </ul>
+			</div>
+			</div>
+			<div class="LrightMain">
+	    		<form class="layui-form" action="">
+		    		<div class="CsearchInputM">    			
+		    			<div class="layui-inline">
+					      <label class="layui-form-label"><span class="requiredFields">*</span> 问卷名称：</label>
+					      <div class="layui-input-block text_InputM">
+					       <input type="text" id="txtName" name="title" lay-verify="title" autocomplete="off" placeholder="输入文本" class="layui-input" />
+					      </div>
+					    </div>
+                        <div class="layui-inline">
+					    	<label class="layui-form-label">样本量：</label>
+					    	<div class="layui-input-block Input_Date">
+					      	<input class="layui-input" placeholder="请输入数字" id="txtSampleNumber" />
+					      	    <div class="InputDateInco">
+						    		<img src="images/number.png" width="19px" height="17px"/>
+						    	</div>
+					    	</div>
+					    </div>
+					    <div class="layui-inline">
+					    	<label class="layui-form-label">问卷分值：</label>
+					    	<div class="layui-input-block Input_Date">
+					      	<input class="layui-input" placeholder="请输入数字" id="txtScore" />
+					      	    <div class="InputDateInco">
+						    		<img src="images/number.png" width="19px" height="17px"/>
+						    	</div>
+					    	</div>
+					    </div>
+		    		</div>
+                    <div class="CsearchInputM">
+					    <div class="layui-inline">
+					    	<label class="layui-form-label"><span class="requiredFields">*</span> 开始日期：</label>
+					    	<div class="layui-input-block Input_Date">
+					      	<input class="layui-input" placeholder="开始日" id="calFromDate">
+					      	<div class="InputDateInco">
+						    		<img src="images/InputDateInco.png" />
+						    	</div>
+					    	</div>
+					    </div>
+					    <div class="layui-inline">
+					    	<label class="layui-form-label"><span class="requiredFields">*</span> 截止日期：</label>
+					    	<div class="layui-input-block Input_Date">
+						      <input class="layui-input" placeholder="截止日" id="calToDate">
+						    	<div class="InputDateInco">
+						    		<img src="images/InputDateInco.png" />
+						    	</div>
+					    	</div>
+					    </div>
+                        <div class="layui-inline">
+					    	<label class="layui-form-label">执行频次：</label>
+					    	<div class="layui-input-block Input_Date">
+						      <select class="LaddSelect" id="ddlFrequency">
+		                        <option value="">请选择</option>         
+		                    </select>
+					    	</div>
+					    </div>
+                        <div class="layui-inline">
+                            <label class="layui-form-label">录入方式：</label>
+                            <div class="layui-input-block Input_Date">
+                                <select class="LaddSelect" id="ddlUploadType">
+                                    <option value="">请选择</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="layui-inline" style="width:240px;">
+					        <label class="layui-form-label" style="width: 120px;">自动选中正确项：</label>
+					        <div class="layui-input-block">
+						        <input id="cbxAutoTickCorrectOption" type="checkbox" checked="" name="open" lay-skin="switch" lay-text="ON|OFF"/>
+					        </div>
+					    </div>
+                        <div class="layui-inline" style="width:240px;">
+					        <label class="layui-form-label" style="width: 120px;">自动刷新问卷：</label>
+					        <div class="layui-input-block">
+						        <input id="cbxAutoRefreshPage" type="checkbox" checked="" name="open" lay-skin="switch" lay-text="ON|OFF"/>
+					        </div>
+					    </div>
+		    		</div>
+		    		<div class="layui-form-item layui-form-text mt10 ">
+					    <label class="layui-form-label">备注：</label>
+					    <div class="layui-input-block">
+					      <textarea placeholder="请输入内容" id="txtDescription" class="layui-textarea"></textarea>
+					    </div>
+					</div>
+                    
+	    		</form>
+	    		<div class="LPaperInfo_txt" id="infoPanel">
+	    			<div class="fl LPaperInfo_InforLeft">
+	    				<!--当前状态：<strong><span id="lblStatus"></span></strong>
+                        &nbsp;&nbsp;&nbsp;&nbsp;-->
+	    				<span id="lblLatestEditing"></span>
+                        &nbsp;&nbsp;
+                        <span id="lblCreatingTime"></span>
+	    			</div>
+                    <div class="fl LPaperInfo_InforLeft allhide">
+	    				<span>总题数：100</span>
+                        <span>总分数：1000</span>
+	    			</div>
+	    		</div>
+    		</div>
+    		<div class="Txtright">
+    			<button class="layui-btn lBtn_black mt10" id="btnBack">返  回</button>
+                <button class="layui-btn lBtn_black mt10" id="btnCancel">取  消</button>
+                <button class="layui-btn lBtn_black mt10" id="btnEdit">编  辑</button>
+    			<button class="layui-btn lBtn_black mt10" id="btnSave">保  存</button>	
+                <button class="layui-btn lBtn_black mt10" id="btnDelete">删  除</button>		
+                <button class="layui-btn lBtn_green mt10" id="btnViewQuestions">问卷题目</button>
+                <input type="hidden" id="hfID" />	 
+			  </div> 
+   	</div>
+</div>
+</body>
+</html>

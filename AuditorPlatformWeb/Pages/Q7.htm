@@ -1,0 +1,386 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>是非题内容页</title>
+
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">  
+    <link rel="stylesheet" href="css/layui.css"  media="all">
+    <link rel="stylesheet" href="css/common.css"  media="all">
+    <link rel="stylesheet" href="css/paperInfor.css"  media="all">
+
+    <script type="text/javascript" src="js/jquery_2-1-0_min.js"  charset="utf-8"></script>
+    <script src="js/Common.js" type="text/javascript"></script>
+    <script src="js/layui.js" type="text/javascript" charset="utf-8"></script>
+
+    <script src="js/ajaxfileupload.js" type="text/javascript"></script>
+
+    <script type="text/javascript">
+    var index = parent.layer.getFrameIndex(window.name);
+    //弹出窗口表单样式
+    layui.use(['form'], function () {
+        var form = layui.form();
+    });
+
+    $(function () {
+
+        $.ajaxSettings.async = false;
+
+        LoadCountType();
+
+        LoadAttachmentCheckBox();
+
+        LoadLinkedQuestions();
+
+        LoadQuestion();
+
+        $("#btnSave").click(function () {
+            DoSave();
+        });
+        $("#btnCancel").click(function () {
+            parent.layer.close(index);
+        });
+
+        $.ajaxSettings.async = true;
+    });
+
+    function LoadAttachmentCheckBox() {
+        $("#cbxAllowImage").change(function () {
+            $("#cbxMustImage").prop("checked", false);
+            $("#cbxMustImage").attr("disabled", $(this).prop("checked") == false);
+        });
+        $("#cbxAllowAudio").change(function () {
+            $("#cbxMustAudio").prop("checked", false);
+            $("#cbxMustAudio").attr("disabled", $(this).prop("checked") == false);
+        });
+        $("#cbxAllowVideo").change(function () {
+            $("#cbxMustVideo").prop("checked", false);
+            $("#cbxMustVideo").attr("disabled", $(this).prop("checked") == false);
+        });
+    }
+
+    function LoadLinkedQuestions() {
+        var id = getUrlParam("id");
+        var qid = getUrlParam("qid");
+        var date = new Date();
+        var url = '../Logic/Questionnaire.ashx';
+        $.getJSON(url, { type: "10", date: date, id: id, qid: qid }, function (data) {
+            var questions = data;
+            $("#ddlLinkedQuestion").empty();
+            $("#ddlLinkedQuestion").append("<option value='0'>默认无关联</option>");
+            $.each(questions, function (i, item) {
+                $("#ddlLinkedQuestion").append("<option value='" + item.ID + "'>" + item.Title + "</option>");
+            });
+        });
+        layui.use(['form'], function () {
+            var form = layui.form();
+            form.on('select(ddlLinkedQuestion)', function (data) {
+                var linkedQuestionID = data.value;
+                LoadLinkedOptions(linkedQuestionID);
+            });
+        });
+    }
+
+    function LoadLinkedOptions(qid) {
+        var date = new Date();
+        var url = '../Logic/Questionnaire.ashx';
+        $.getJSON(url, { type: "11", date: date, qid: qid }, function (data) {
+            var options = data;
+            $("#ddlLinkedOption").empty();
+            $("#ddlLinkedOption").append("<option value='0'>默认无关联</option>");
+            $.each(options, function (i, item) {
+                $("#ddlLinkedOption").append("<option value='" + item.ID + "'>" + item.Title + "</option>");
+            });
+            layui.use(['form'], function () {
+                var form = layui.form();
+                form.render('select'); 
+            });
+        });
+    }
+
+    function LoadQuestion() {
+        var id = getUrlParam("id");
+        var qid = getUrlParam("qid");
+        $("#hfQID").val(qid);
+        if (id == "" || id == null) {
+            return;
+        }
+        $("#hfID").val(id);
+        var date = new Date();
+        var url = '../Logic/Questionnaire.ashx';
+        $.getJSON(url, { type: "6", date: date, id: id }, function (data) {
+            var pdo = data.Question;
+            $("#txtTitle").text(pdo.Title);
+            $("#txtCode").val(pdo.Code);
+            $("#txtParentCode").val(pdo.ParentCode);
+            $("#txtScore").val(pdo.TotalScore);
+            $("#txtDescription").val(pdo.Description);
+            $("#ddlCountType").val(pdo.CountType);
+            $("#ddlLinkedQuestion").val(pdo.LinkQuestionID);
+            LoadLinkedOptions(pdo.LinkQuestionID);
+            $("#ddlLinkedOption").val(pdo.LinkOptionID);
+
+            $("#cbxAllowImage").prop("checked", pdo.BAllowImage);
+            $("#cbxMustImage").attr("disabled", $("#cbxAllowImage").prop("checked") == false);
+            $("#cbxMustImage").prop("checked", pdo.BMustImage);
+
+            $("#cbxAllowAudio").prop("checked", pdo.BAllowAudio);
+            $("#cbxMustAudio").attr("disabled", $("#cbxAllowAudio").prop("checked") == false);
+            $("#cbxMustAudio").prop("checked", pdo.BMustAudio);
+
+            $("#cbxAllowVideo").prop("checked", pdo.BAllowVideo);
+            $("#cbxMustVideo").attr("disabled", $("#cbxAllowVideo").prop("checked") == false);
+            $("#cbxMustVideo").prop("checked", pdo.BMustVideo);
+        });
+    }
+    function LoadCountType() {
+        var key = "CountType";
+        var date = new Date();
+        var url = '../Logic/BusinessConfiguration.ashx';
+        $.getJSON(url, { type: "1", date: date, name: key }, function (data) {
+            $.each(data, function (i, item) {
+                $("#ddlCountType").append("<option value='" + item.ID + "'>" + item.Name + "</option>");
+            });
+            $("#ddlCountType").val("5");//段落，不得分不扣分
+        });
+    }
+
+    function DoValidate() {
+        var code = $("#txtCode").val();
+        var score = $("#txtScore").val();
+        var countType = $("#ddlCountType").val();
+        var title = $("#txtTitle").val();
+
+        var msgs = [];
+        if (code == "") {
+            msgs.push("请输入段落的<b>题号</b>.");
+        }
+        var scoreNum = parseInt(score);
+        if (score == "" || scoreNum < 0) {
+            msgs.push("请输入题目的<b>分值</b>.");
+        }
+        if (title == "") {
+            msgs.push("请输入段落的<b>正文</b>.");
+        }
+
+        var linkQuestionID = $("#ddlLinkedQuestion").val();
+        var linkOptionID = $("#ddlLinkedOption").val();
+        if (linkQuestionID != "" && linkQuestionID != "0" && linkOptionID == "0") {
+            msgs.push("您选择了关联题目但是却没有关联到选项，请务必选择关联选项.");
+        }
+
+        if (msgs.length > 0) {
+            var message = "";
+            $.each(msgs, function (n, value) {
+                message += ((n + 1) + "." + value);
+                message += "<br/>";
+            });
+            layer.alert(message);
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+
+    function DoSave() {
+        if (DoValidate() == false) {
+            return false;
+        }
+        var code = $("#txtCode").val();
+        var parentCode = $("#txtParentCode").val();
+        var score = $("#txtScore").val();
+        var countType = $("#ddlCountType").val();
+        var title = $("#txtTitle").val();
+        var description = $("#txtDescription").val();
+        var linkQuestionID = $("#ddlLinkedQuestion").val();
+        var linkOptionID = $("#ddlLinkedOption").val();
+
+        var bAllowImage = $("#cbxAllowImage").prop("checked");
+        var bAllowAudio = $("#cbxAllowAudio").prop("checked");
+        var bAllowVideo = $("#cbxAllowVideo").prop("checked");
+        var bMustImage = $("#cbxMustImage").prop("checked");
+        var bMustAudio = $("#cbxMustAudio").prop("checked");
+        var bMustVideo = $("#cbxMustVideo").prop("checked");
+
+        var id = $("#hfID").val();
+        var qid = $("#hfQID").val();
+        var questionType = 7;
+        var date = new Date();
+        var url = '../Logic/Questionnaire.ashx';
+        $.ajax({
+            url: url,
+            data: {
+                Type: 7,
+                Date: date,
+                id: id,
+                qid: qid,
+                code: code,
+                parentCode: parentCode,
+                score: score,
+                countType: countType,
+                questionType: questionType,
+                title: title,
+                linkQuestionID: linkQuestionID,
+                linkOptionID: linkOptionID,
+                description: description,
+                bAllowImage: bAllowImage,
+                bAllowAudio: bAllowAudio,
+                bAllowVideo: bAllowVideo,
+                bMustImage: bMustImage,
+                bMustAudio: bMustAudio,
+                bMustVideo: bMustVideo
+            },
+            dataType: "json",
+            type: "POST",
+            traditional: true,
+            success: function (data) {
+                var id = data;
+                $("#hfID").val(id);
+                layer.alert("保存成功！", function (index) {
+                    layer.close(index);
+                    parent.LoadData();
+                    $("#btnCancel").click(); 
+                });
+            },
+            error: function () {
+                layer.alert("保存失败！");
+            }
+        });
+    }
+    </script>
+</head>
+<body>
+<!--这是新增确认按钮点击-->
+<div class="LaddQ" id="winQuestion">
+	<div class="LaddMain LaddMainEdit" style="padding-left:0px; padding-right: 30px;">   	
+   		<div class="layui-inline">
+	      <label class="layui-form-label"><span class="requiredFields">*</span> 题号：</label>
+	      <div class="layui-input-block">
+	       <input type="text" id="txtCode" name="title" lay-verify="title" autocomplete="off" class="layui-input">
+	      </div>
+	    </div>
+	    <div class="layui-inline">
+	      <label class="layui-form-label"><span class="requiredFields">*</span> 父题号：</label>
+	      <div class="layui-input-block">
+	       <input type="text" id="txtParentCode" name="title" lay-verify="title" autocomplete="off" class="layui-input">
+	      </div>
+	    </div>
+	    <div class="layui-inline">
+	      <label class="layui-form-label"><span class="requiredFields">*</span> 分值：</label>
+	      <div class="layui-input-block">
+	       <input type="text" id="txtScore" name="title" lay-verify="title" autocomplete="off" class="layui-input">
+	      </div>
+	    </div>
+        <form class="layui-form" action="">	
+	    <div class="layui-inline">
+	      <label class="layui-form-label"><span class="requiredFields">*</span> 计分：</label>
+	      <div class="layui-input-block">
+	      		<select class="LaddSelect" id="ddlCountType" disabled>
+		          <option value="">请选择</option>          
+		        </select>
+	      </div>
+	    </div>
+        </form>
+	    <div class="layui-form-item layui-form-text LaddMainTxt mt10">
+		    <label class="layui-form-label"><span class="requiredFields">*</span> 正文：</label>
+		    <div class="layui-input-block">
+		      <textarea id="txtTitle" class="layui-textarea" rows="2"></textarea>
+		    </div>
+		  </div>
+          <div class="layui-form-item layui-form-text mt10">
+		    <label class="layui-form-label">附件：</label>
+		    <div class="layui-input-block OneWidth_Main">
+		      <ul>
+	        	<li>
+	        		<a href="javascript:void(0)"><input type="checkbox" id="cbxAllowImage" />
+	        		<label for="cbxAllowImage">允许照片</label></a>
+                    (   
+                        <a href="javascript:void(0)"><input type="checkbox" id="cbxMustImage" disabled="disabled"/>
+	        		    <label for="cbxMustImage" class="boldText">必须照片</label></a>
+                    )&nbsp;&nbsp;&nbsp;
+	        	</li>
+	          <li>
+	        		<a href="javascript:void(0)"><input type="checkbox" id="cbxAllowAudio" />
+	        		<label for="cbxAllowAudio">允许录音</label></a>
+                    (   
+                        <a href="javascript:void(0)"><input type="checkbox" id="cbxMustAudio" disabled="disabled"/>
+	        		    <label for="cbxMustAudio" class="boldText">必须录音</label></a>
+                    )&nbsp;&nbsp;&nbsp;
+	        	</li>
+	        	<li>
+	        		<a href="javascript:void(0)"><input type="checkbox" id="cbxAllowVideo" />
+	        		<label for="cbxAllowVideo">允许录像</label></a>
+                    (   
+                        <a href="javascript:void(0)"><input type="checkbox" id="cbxMustVideo" disabled="disabled"/>
+	        		    <label for="cbxMustVideo" class="boldText">必须录像</label></a>
+                    )&nbsp;&nbsp;&nbsp;
+	        	</li>
+	        </ul>
+		    </div>
+          </div>
+          <div class="layui-form-item layui-form-text mt10 allhide">
+		    <label class="layui-form-label">附件数量：</label>
+		    <div class="layui-input-block OneWidth_Main">
+		      <ul>
+	        	<li>
+	        		<label>照片数量</label>
+                    <input type="text" id="txtImageNumber" />
+	        	</li>
+	          <li>
+	        		<label>录音数量</label>
+                    <input type="text" id="txtAudioNumber" />
+	        	</li>
+                <li>
+	        		<label>录像数量</label>
+                    <input type="text" id="txtVideoNumber" />
+	        	</li>
+	        </ul>
+		    </div>
+          </div>
+          <form class="layui-form" action="">	
+          <div class="layui-inline">
+              <label class="layui-form-label">关联：</label>
+              <div class="layui-input-block">
+                  <select class="LaddSelect" id="ddlLinkedQuestion" lay-filter="ddlLinkedQuestion">
+                      <option value="0">默认无关联</option>		          
+                    </select>
+              </div>
+        </div>
+          <div class="layui-inline">
+              <label class="layui-form-label">关联选项：</label>
+              <div class="layui-input-block">
+                  <select class="LaddSelect" id="ddlLinkedOption">
+                      <option value="0">默认无关联</option>		          
+                    </select>
+              </div>
+            </div>	
+            </form>	 
+		  <div class="layui-form-item layui-form-text mt10 LaddMainTxt">
+		    <label class="layui-form-label">备注：</label>
+		    <div class="layui-input-block">
+		      <textarea id="txtDescription" placeholder="请输入内容" class="layui-textarea" rows="2"></textarea>
+		    </div>
+		  </div>
+          <div class="Txtright mt10" id="LQuestionBtn">
+    			<button class="layui-btn lBtn_black mt10" id="btnCancel">取  消</button>
+			    <button class="layui-btn lBtn_black mt10" id="btnDelete">删 除</button>
+			    <button class="layui-btn lBtn_green mt10" id="btnSave">保  存</button>
+                <input type="hidden" id="hfID" />
+                <input type="hidden" id="hfQID" />
+			</div>
+	</div>
+</div>
+
+<div class="LoadingBg" style="display:none">
+	<div class="LoadingMain">
+    	<img src="images/loading.gif" alt=""/>正在上传...
+    </div>
+</div>
+</body>
+</html>

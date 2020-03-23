@@ -1,0 +1,564 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>渠道核查在线管理平台</title>
+<link rel="shortcut icon" href="favicon.ico"/>
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">  
+
+  <meta http-equiv="Expires" content="0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Cache-control" content="no-cache">
+<meta http-equiv="Cache" content="no-cache">
+
+  <link rel="stylesheet" href="css/layui.css"  media="all">
+  <link rel="stylesheet" href="css/common.css"  media="all">
+  <link href="css/ClientResult.css" rel="stylesheet" type="text/css" media="all"/>
+
+  <script type="text/javascript" src="js/jquery_2-1-0_min.js"  charset="utf-8"></script>
+  <script src="js/jquery.base64.js" type="text/javascript"></script>
+  <script src="js/Common.js" type="text/javascript"></script>
+  <script src="js/layui.js" type="text/javascript" charset="utf-8"></script>
+
+  <link rel="stylesheet" type="text/css" href="webuploader/webuploader.css" />
+  <script type="text/javascript" src="webuploader/webuploader.js"></script>
+
+  <script type="text/javascript" language="javascript">
+
+      $(function () {
+
+          $.ajaxSettings.async = false;
+
+          LoadClients();
+
+          LoadQuestionnaires();
+
+          layui.use('form', function () {
+              var form = layui.form();
+
+              form.on('select(ddlQuestionnaire)', function (data) {
+                  InitPeriod();
+              });
+          });
+
+          LoadUploadControl();
+
+          $.ajaxSettings.async = true;
+
+      });
+
+      function LoadUploadControl() {
+          var uploader = WebUploader.create({
+              auto: true,
+              swf: 'webuploader/Uploader.swf',
+              server: '../Logic/QuestionnaireAudit.ashx?type=26', //2 区控
+              pick: '#filePicker',
+              timeout: 0,
+              accept: {
+                  title: 'Excel',
+                  extensions: 'xlsx',
+                  mimeTypes: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+              }
+          });
+
+          uploader.on('uploadSuccess', function (file, data) {
+              var preResult = data.toString();
+              var result = "0";
+              var msg = "";
+              if (preResult == "1") {
+                  result = "1";
+              }
+              else {
+                  preResult = data._raw;
+                  result = preResult.substr(0, 1);
+                  if (preResult.length > 1) {
+                      msg = preResult.substr(1);
+                  }
+              }
+              if (result == "1") {
+                  if (msg != "") {
+                      layer.alert("上传成功，但存在以下问题：<br/>" + msg);
+                  }
+                  else {
+                      layer.alert("上传成功");
+                  }
+
+                  Search(1, 20);
+              }
+              else {
+                  layer.alert("文件处理过程中出错，原因如下：<br/>" + msg);
+              }
+          });
+
+          uploader.on('uploadError', function (file, reason) {
+              layer.alert("上传出错,原因如下：<br/>" + reason);
+          });
+
+          uploader.on('uploadComplete', function (file) {
+              uploader.reset();
+          });
+      }
+
+      var controlIDs = [];
+      function LoadClients() {
+          var date = new Date();
+          var url = '../Logic/Clients.ashx';
+          $.getJSON(url, { type: "10", date: date }, function (data) {
+
+              var clientStructure = data.Result;
+              var topClients = data.Clients;
+              if (clientStructure != null) {
+                  $.each(clientStructure, function (i, item) {
+                      var labelName = item.Name;
+                      var controlID = "ddlClient" + item.LevelID;
+                      controlIDs.push(controlID);
+                      var str = "<div class=\"layui-inline\">";
+                      str += "<label class=\"layui-form-label\">" + item.Name + "：</label>";
+                      str += "<div class=\"layui-input-block\" style=\"width:300px;\">";
+                      str += "<select id=\"" + controlID + "\" lay-filter=\"" + controlID + "\">";
+                      str += "<option value=\"-999\">不限</option>";
+                      str += "</select>";
+                      str + "</div></div>";
+                      $("#divQuestionnaire").before(str);
+                  });
+              }
+              if (topClients != null && controlIDs.length > 0) {
+                  var controlID = controlIDs[0];
+                  $.each(topClients, function (i, item) {
+                      var str = "<option value=\"" + item.ID + "\">" + item.Name + "</option>";
+                      $("#" + controlID).append(str);
+                  });
+
+              }
+
+              layui.use('form', function () {
+                  var form = layui.form();
+
+                  for (var i = 0; i < controlIDs.length - 1; i++) {
+                      var controlID = controlIDs[i];
+                      var subControlID = controlIDs[i + 1];
+
+                      form.on('select(' + controlID + ')', function (data) {
+                          InitClients(data.elem);
+                      });
+                  }
+
+              });
+          });
+      }
+
+      function InitClients(ddlObj) {
+          var date = new Date();
+          var url = '../Logic/Clients.ashx';
+          var controlID = $(ddlObj).attr("id");
+          var parentID = $(ddlObj).val();
+          var bGetIt = false;
+          $.ajaxSettings.async = false;
+          for (var i = 0; i < controlIDs.length; i++) {
+              var cid = controlIDs[i];
+              if (bGetIt) {
+
+                  $("#" + cid).empty();
+                  $("#" + cid).append("<option value=\"-999\">不限</option>");
+                  if (controlID == controlIDs[i - 1]) {
+                      $.getJSON(url, { type: "11", date: date, parentID: parentID }, function (data) {
+                          $.each(data, function (i, item) {
+                              $("#" + cid).append("<option value=\"" + item.ID + "\">" + item.Name + "</option>");
+                          });
+                          layui.use('form', function () {
+                              var form = layui.form();
+                              form.render('select');
+                          });
+                      });
+                  }
+              }
+              if (controlID == cid) {
+                  bGetIt = true;
+              }
+          }
+          layui.use('form', function () {
+              var form = layui.form();
+              form.render('select');
+          });
+          $.ajaxSettings.async = true;
+      }
+
+      function Search(pageNumber, pageLimit) {
+          var qid = $("#ddlQuestionnaire").val();
+          var period = $("#ddlPeriod").val();
+          var status = $("#ddlStatus").val();
+          var typeid = $("#ddlType").val();
+          var clientID = "-999";
+          $.each(controlIDs, function (i, item) {
+              var cid = $("#" + item).val();
+              if (cid == "-999") {
+                  return false;
+              }
+              clientID = cid;
+          });
+
+          var date = new Date();
+          var url = '../Logic/Questionnaire.ashx';
+          $("#datalist").empty();
+          $("#datalist").append("<tr><td colspan=\"10\" class=\"No_Search\"><img src=\"images/loading.gif\"/>正在后台处理中，请耐心等待...</td></tr>");
+          $.getJSON(url, { type: "19", date: date, qid: qid, clientID: clientID, period: period, status: status, typeid: typeid, pageNumber: pageNumber, pageLimit: pageLimit }, function (data) {
+              BindData(data, pageNumber, pageLimit);
+          });
+      }
+
+      function BindData(data, pageNumber, pageLimit) {
+          var totalCount = data.Count;
+          var columns = data.Columns;
+          var dtData = data.Data;
+
+          $("#headlist").empty();
+          $.each(columns, function (i, item) {
+              $("#headlist").append("<th>" + item.Name + "</th>");
+          });
+          $("#datalist").empty();
+          $.each(dtData, function (i, item) {
+              var str = "<tr>";
+              $.each(columns, function (i, col) {
+                  var value = ReplaceNULL(item[col.Name], '');
+                  value = value.toString();
+                  if (value.indexOf('@@@@') != -1) {
+                      var text = value.substring(0, value.indexOf('@@@@'));
+                      var url = value.substring(value.indexOf('@@@@') + 4);
+                      value = "<a target=\"_blank\" class=\"Allmb_Opera\" href=\"" + url + "\">" + text + "</a>";
+                  }
+                  if (i == 0) {
+                      str += ("<td class='TableIDTd'>" + value + "</td>");
+                  }
+                  else if (i > 0 && i < 7) {
+                      str += ("<td class='shortTableTd'>" + value + "</td>");
+                  }
+                  else {
+                      str += "<td>" + value + "</td>";
+                  }
+              });
+              str += "</tr>";
+              $("#datalist").append(str);
+          });
+
+          $("#txtRecordNumber").text(totalCount);
+          var pages = parseInt(totalCount / pageLimit + 1);
+          if (totalCount > 0 && totalCount % pageLimit == 0) {
+              pages = pages - 1;
+          }
+
+          layui.use(['laypage'], function () {
+              var laypage = layui.laypage;
+              laypage({
+                  cont: 'pagecontrol', //容器。值支持id名、原生dom对象，jquery对象。【如该容器为】：<div id="page1"></div>
+                  pages: pages, //通过后台拿到的总页数
+                  curr: pageNumber || 1, //当前页
+                  jump: function (obj, first) { //触发分页后的回调
+                      if (!first) { //点击跳页触发函数自身，并传递当前页：obj.curr
+                          Search(obj.curr, pageLimit);
+                      }
+                  }
+              });
+          });
+          if (totalCount <= 0) {
+              $("#datalist").append("<tr><td colspan=\"10\" class=\"No_Search\">暂无数据</td></tr>");
+          }
+      }
+
+      function InitPeriod() {
+          var qid = $("#ddlQuestionnaire").val();
+          var date = new Date();
+          var url = '../Logic/Questionnaire.ashx';
+          $("#ddlPeriod").empty();
+          $.getJSON(url, { type: "18", date: date, qid: qid }, function (data) {
+              $.each(data, function (i, item) {
+                  var periodValue = jsonDateFormat(item.FromDate) + "|" + jsonDateFormat(item.ToDate)
+                  $("#ddlPeriod").append("<option value=\"" + periodValue + "\">" + item.Period + "</option>");
+              });
+
+              $("#ddlPeriod").selectedIndex = 0;
+
+              layui.use('form', function () {
+                  var form = layui.form();
+                  form.render('select');
+              });
+          });
+      }
+
+      function LoadQuestionnaires() {
+          var date = new Date();
+          var url = '../Logic/Questionnaire.ashx';
+          $("#ddlQuestionnaire").empty();
+          $.getJSON(url, { type: "1", date: date }, function (data) {
+              $.each(data, function (i, item) {
+                  $("#ddlQuestionnaire").append("<option value=\"" + item.ID + "\">" + item.Name + "</option>");
+              });
+
+              $("#ddlQuestionnaire").selectedIndex = 0;
+
+              InitPeriod();
+          });
+      }
+
+      function DoDownload2() {
+          var qid = $("#ddlQuestionnaire").val();
+          var period = $("#ddlPeriod").val();
+          var status = $("#ddlStatus").val();
+          var typeid = $("#ddlType").val();
+          var hasLink = false;
+          var hasDescription = false;
+          var clientID = "-999";
+          $.each(controlIDs, function (i, item) {
+              var cid = $("#" + item).val();
+              if (cid == "-999") {
+                  return false;
+              }
+              clientID = cid;
+          });
+          $(".LoadingBg").show();
+          var date = new Date();
+          var url = '../Logic/Questionnaire.ashx';
+          $.ajax({
+              url: url,
+              data: {
+                  type: 20,
+                  date: date,
+                  qid: qid,
+                  clientID: clientID,
+                  period: period,
+                  status: status,
+                  typeid: typeid,
+                  hasLink: hasLink,
+                  hasDescription: hasDescription
+              },
+              dataType: "text",
+              type: "GET",
+              traditional: true,
+              success: function (data) {
+                  $(".LoadingBg").hide();
+                  if (data == "0") {
+                      layer.alert("下载失败！");
+                  }
+                  else {
+                      window.open(data, "_parent");
+                  }
+              },
+              error: function (e) {
+                  $(".LoadingBg").hide();
+                  layer.alert("下载失败！");
+              }
+          });
+      }
+
+      function DoDownload() {
+          var qid = $("#ddlQuestionnaire").val();
+          var period = $("#ddlPeriod").val();
+          var status = $("#ddlStatus").val();
+          var typeid = $("#ddlType").val();
+          var hasLink = true;
+          var hasDescription = true;
+          var clientID = "-999";
+          $.each(controlIDs, function (i, item) {
+              var cid = $("#" + item).val();
+              if (cid == "-999") {
+                  return false;
+              }
+              clientID = cid;
+          });
+          $(".LoadingBg").show();
+          var date = new Date();
+          var url = '../Logic/Questionnaire.ashx';
+          $.ajax({
+              url: url,
+              data: {
+                  type: 20,
+                  date: date,
+                  qid: qid,
+                  clientID: clientID,
+                  period: period, 
+                  status: status,
+                  typeid: typeid,
+                  hasLink: hasLink,
+                  hasDescription: hasDescription
+              },
+              dataType: "text",
+              type: "GET",
+              traditional: true,
+              success: function (data) {
+                  $(".LoadingBg").hide();
+                  if (data == "0") {
+                      layer.alert("下载失败！");
+                  }
+                  else {
+                      window.open(data, "_parent");
+                  }
+              },
+              error: function (e) {
+                  $(".LoadingBg").hide();
+                  layer.alert("下载失败！");
+              }
+          });
+      }
+
+      function DoDownloadFile() {
+          var qid = $("#ddlQuestionnaire").val();
+          var period = $("#ddlPeriod").val();
+          var status = $("#ddlStatus").val();
+          var typeid = $("#ddlType").val();
+          var clientID = "-999";
+          $.each(controlIDs, function (i, item) {
+              var cid = $("#" + item).val();
+              if (cid == "-999") {
+                  return false;
+              }
+              clientID = cid;
+          });
+          $(".LoadingBg").show();
+          var date = new Date();
+          var url = '../Logic/Questionnaire.ashx';
+          $.ajax({
+              url: url,
+              data: {
+                  type: 24,
+                  date: date,
+                  qid: qid,
+                  clientID: clientID,
+                  period: period,
+                  status: status,
+                  typeid: typeid
+              },
+              dataType: "text",
+              type: "GET",
+              traditional: true,
+              success: function (data) {
+                  $(".LoadingBg").hide();
+                  if (data == "0") {
+                      layer.alert("下载失败！");
+                  }
+                  else {
+                      window.open(data, "_parent");
+                  }
+              },
+              error: function (e) {
+                  $(".LoadingBg").hide();
+                  layer.alert("下载失败！");
+              }
+          });
+      }
+  </script>
+
+</head>
+<body>
+<!--母版页-->
+    <div id="CommonTop"></div>
+    <div id="CommonLeft"></div>
+	<script type="text/javascript">
+	    $(function () {
+	        $("#CommonTop").load("CommonTop.htm?s=" + (new Date()).toLocaleTimeString());
+	        LoadCurrentProjectLeft();
+	        $("#CommonProjectTop").load("CommonProjectTop.htm");
+	    });
+    </script>
+<!--内容页-->
+<div class="layui-tab layui-tab-brief" lay-filter="demoTitle">
+    <div id="CommonProjectTop"></div>   
+    <div class="layui-body layui-tab-content crightMain">
+        <div class="crightMainTitle">
+    		<div class="layui-tab lpaperItitle">
+			  <ul class="layui-tab-title ">
+                <li class="layui-this">问卷结果</li>	    	    
+			  </ul>
+			</div>
+		</div>
+        <div class="crightSearch">
+    		<form class="layui-form" action="" onsubmit="return false">
+    		<div class="CsearchInputM">		
+                <div class="layui-inline" id="divQuestionnaire">
+			        <label class="layui-form-label">执行问卷：</label>
+				    <div class="layui-input-block" style="width:300px;">
+					    <select id="ddlQuestionnaire" lay-filter="ddlQuestionnaire">
+                            <option value="">请选择</option>
+					    </select>
+				    </div>
+			    </div><div class="layui-inline">
+			        <label class="layui-form-label">执行期次：</label>
+				    <div class="layui-input-block" style="width:300px;">
+					    <select id="ddlPeriod" lay-filter="ddlPeriod">
+                            <option value="">请选择</option>
+					    </select>
+				    </div>
+			    </div><div class="layui-inline">
+			        <label class="layui-form-label">执行状态：</label>
+				    <div class="layui-input-block" style="width:300px;">
+					    <select id="ddlStatus" lay-filter="ddlStatus">
+                            <option value="-999">不限</option>
+                            <option value="1">录入中</option>
+                            <option value="-1">已完成录入</option>
+                            <option value="2">执行督导审核中</option>
+                            <option value="3">区控审核中</option>
+                            <option value="4">质控审核中</option>
+                            <option value="8">质控督导审核中</option>
+                            <option value="5">申诉中</option>
+                            <option value="6">复审中</option>
+                            <option value="7" selected="selected">完成</option>
+					    </select>
+				    </div>
+			    </div><div class="layui-inline">
+			        <label class="layui-form-label">结果类型：</label>
+				    <div class="layui-input-block" style="width:200px;">
+					    <select id="ddlType" lay-filter="ddlType">
+                            <option value="1">问卷答案</option>
+                            <option value="2">问卷得分</option>
+					    </select>
+				    </div>
+			    </div>
+                <div class="layui-inline crightSearchBtn2">
+			    	<button class="layui-btn" id="btnApply" onclick="Search(1,20)">查  询</button>
+			    </div>                
+            </div>
+    		</form>
+    	</div>
+        <hr />
+        <blockquote class="layui-elem-quote layui-quote-nm">
+            <p>问卷结果详情信息：我们为您检索到 <span id="txtRecordNumber">-</span> 条记录</p>
+        </blockquote>
+    	<div class="Allmb_table dataTable">
+            <form class="layui-form" action="">
+    		<table class="layui-table" lay-even="" lay-skin="nob">
+			  <thead>
+			    <tr id="headlist">
+                  <th></th>
+			    </tr> 
+			  </thead>
+			  <tbody id="datalist">
+			  </tbody>
+			</table>
+            </form>
+            <div id="pagecontrol"></div>
+    	</div>
+        <div class="Txtright mt10 mb20">
+            <button class="layui-btn" id="btnDownloadNoLink" onclick="DoDownload2()">下载问卷(无链接)</button>
+            <button class="layui-btn" id="btnDownload" onclick="DoDownload()">下载问卷</button>
+            <button class="layui-btn allhide" id="btnDownloadFile" onclick="DoDownloadFile()">下载文件</button>
+            <div id="filePicker" style="float: right; padding-left: 15px;">更新状态</div>
+		</div> 
+   	</div>
+</div>
+
+<div class="LoadingBg" style="display:none">
+	<div class="LoadingMain">
+    	<img src="images/loading.gif" alt=""/>正在下载数据中，请耐心等待...
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(function () {
+        Search(1,20);
+    });
+    </script>
+</body>
+</html>

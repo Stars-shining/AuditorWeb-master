@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>渠道核查在线管理平台</title>
+<link rel="shortcut icon" href="favicon.ico"/>
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">  
+  <link rel="stylesheet" href="css/layui.css"  media="all">
+  <link rel="stylesheet" href="css/common.css"  media="all">
+  <link href="css/Projectnfo.css" rel="stylesheet" type="text/css" media="all"/>
+
+  <script type="text/javascript" src="js/jquery_2-1-0_min.js"  charset="utf-8"></script>
+  <script src="js/Common.js" type="text/javascript"></script>
+  <script src="js/layui.js" type="text/javascript" charset="utf-8"></script>
+
+  <script type="text/javascript" language="javascript">
+      //搜索表单样式
+      layui.use(['form', 'layedit', 'laydate'], function () {
+          var form = layui.form()
+  , layer = layui.layer
+  , layedit = layui.layedit
+  , laydate = layui.laydate;
+      });
+
+      $(function () {
+          $.ajaxSettings.async = false;
+
+          LoadTrainingTypes();
+
+          LoadPeriod();
+
+          LoadAllProjects();
+
+          $.ajaxSettings.async = true;
+      });
+
+      function LoadTrainingTypes() {
+          $('#ddlType').empty();
+          $('#ddlType').append("<option value='-999'>不限</option>");
+          var date = new Date();
+          var url = '../Logic/BusinessConfiguration.ashx';
+          $.ajax({
+              url: url,
+              data: {
+                  Type: 1,
+                  Date: date,
+                  name: 'TrainingType'
+              },
+              dataType: "json",
+              type: "GET",
+              traditional: true,
+              success: function (data) {
+                  $.each(data, function (i, item) {
+                      $('#ddlType').append("<option value='" + item.ID + "'>" + item.Name + "</option>");
+                  });
+              },
+              error: function () {
+              }
+          });
+      }
+
+      function LoadPeriod() {
+          InitPeriod($("#ddlPeriod"));
+      }
+
+      function LoadAllProjects() {
+          $("#ddlProject").empty();
+          $("#ddlProject").append("<option value='-999'>不限</option>");
+          $("#ddlProject").append("<option value='0'>基础通用</option>");
+          var date = new Date();
+          var url = '../Logic/Project.ashx';
+          $.getJSON(url, { type: "17", date: date }, function (data) {
+              $.each(data, function (i, item) {
+                  $("#ddlProject").append("<option value='" + item.ID + "'>" + item.Name + "</option>");
+              });
+          });
+      }
+
+      function SearchTrainings() {
+          var name = $("#txtTitle").val();
+          var projectID = $("#ddlProject").val();
+          var typeID = $("#ddlType").val();
+          var period = $("#ddlPeriod").val();
+
+          var pageSize = 100;
+
+          $("#datalist").empty();
+          $("#datalist").append("<tr><td colspan=\"6\" class=\"No_Search\"><img src=\"images/loading.gif\"/>正在获取中，请耐心等待...</td></tr>");
+          var date = new Date();
+          var url = '../Logic/Training.ashx';
+          $.getJSON(url, { type: "3", date: date, name: name, projectID: projectID, typeID: typeID, period: period }, function (data) {
+              BindData(data, pageSize, 1);
+          });
+      }
+
+      function BindData(data, pageSize, pageIndex) {
+          $("#datalist").empty();
+          var perPage = pageSize;
+          var index = 0;
+          $.each(data, function (i, item) {
+              index = i + 1;
+              var currentIndex = parseInt(i / perPage + 1);
+              if (currentIndex == pageIndex) {
+                  if (item.ProjectName == null) {
+                      item.ProjectName = "基础通用";
+                  }
+                  var str = "<tr>";
+                  str += ("<td>" + item.Title + "</td>");
+                  str += ("<td>" + item.ProjectName + "</td>");
+                  str += ("<td>" + item.TrainingTypeName + "</td>");
+                  str += ("<td>" + jsonDateFormat(item.FromDate) + "</td>");
+                  str += ("<td>" + jsonDateFormat(item.ToDate) + "</td>");
+                  str += "<td>";
+                  str += ("<a href=\"javascript:void(0)\" class=\"Allmb_Opera\" onclick=\"ViewTrainingInfo('" + item.ID + "')\">查看</a>");
+                  if (userType == 7) {
+                      str += ("&nbsp;&nbsp;<a href=\"javascript:void(0)\" class=\"Allmb_Opera\" onclick=\"DeleteTraining('" + item.ID + "')\">删除</a></td>");
+                  }
+                  str += "</td>";
+                  str += "</tr>";
+
+                  $("#datalist").append(str);
+              }
+          });
+
+          layui.use('form', function () {
+              var form = layui.form();
+              form.render('checkbox');
+          });
+
+          var totalNumber = index;
+          $("#txtRecordNumber").text(totalNumber);
+          var pageNumber = parseInt(totalNumber / perPage + 1);
+          if (totalNumber > 0 && totalNumber % perPage == 0) {
+              pageNumber = pageNumber - 1;
+          }
+
+          layui.use(['laypage'], function () {
+              var laypage = layui.laypage;
+              laypage({
+                  cont: 'pagecontrol', //容器。值支持id名、原生dom对象，jquery对象。【如该容器为】：<div id="page1"></div>
+                  pages: pageNumber, //通过后台拿到的总页数
+                  curr: pageIndex || 1, //当前页
+                  jump: function (obj, first) { //触发分页后的回调
+                      if (!first) { //点击跳页触发函数自身，并传递当前页：obj.curr
+                          BindData(data, pageSize, obj.curr);
+                      }
+                  }
+              });
+          });
+          if (totalNumber <= 0) {
+              $("#datalist").append("<tr><td colspan=\"6\" class=\"No_Search\">根据以上条件，没有查询到任何记录</td></tr>");
+          }
+      }
+
+      function AddTraining(id) {
+          if (id == undefined) {
+              id = "";
+          }
+          var url = "TrainingInfo.htm?id=" + id;
+          window.location = url;
+          //            var title = "新建培训";
+          //            if (id != "") {
+          //                title = "编辑培训";
+          //            }
+          //            var area = ['660px', '460px'];
+          //            layer.open({
+          //                type: 2,
+          //                title: title,
+          //                shadeClose: true,
+          //                area: area,
+          //                offset: "auto",
+          //                content: url,
+          //                shade: 0.6
+          //            });
+      }
+
+      function ViewTrainingInfo(id) {
+          var url = "TrainingInfo.htm?id=" + id + "&st=1";
+          window.location = url;
+      }
+
+      function DeleteTraining(id) {
+          layer.confirm('您确定要删除当前培训吗？', {
+              btn: ['确定', '取消']
+          }, function (index) {
+
+              var date = new Date();
+              var url = '../Logic/Training.ashx';
+              $.ajax({
+                  url: url,
+                  data: {
+                      Type: 5,
+                      Date: date,
+                      id: id
+                  },
+                  dataType: "json",
+                  type: "POST",
+                  traditional: true,
+                  success: function (data) {
+                      SearchTrainings();
+                      layer.close(index);
+                  },
+                  error: function () {
+                      layer.close(index);
+                  }
+              });
+
+          });
+      }
+  
+  </script>
+
+</head>
+<body>
+<!--母版页-->
+    <div id="CommonTop"></div>
+    <div id="CommonLeft"></div>
+	<script type="text/javascript">
+	    $(function () {
+	        $("#CommonTop").load("CommonTop.htm");
+	        LoadCurrentLeft();
+
+	    });
+    </script>
+<!--内容页-->
+<div class="layui-tab layui-tab-brief" lay-filter="demoTitle">
+		<div class="right_titleM">
+			<div class="right_firstTit">
+				<span class="fr"></span>
+				培训管理
+			</div>
+		</div>    
+    <div class="layui-body layui-tab-content crightMain">
+    	<div class="crightMainTitle">
+    		<span>所有培训</span>
+    	</div>
+    	<div class="crightMainSubTit">
+    		<strong>筛选条件：</strong>
+    	</div>
+        <div class="crightSearch">
+    		<form class="layui-form" action="">
+    		<div class="CsearchInputM">    			
+			    <div class="layui-inline">
+			    	 <label class="layui-form-label">培训主题：</label>
+				      <div class="layui-input-block">
+				        <input id="txtTitle" type="text" name="title" lay-verify="title" autocomplete="off" placeholder="默认不限" class="layui-input">
+				      </div>
+			    </div>
+                <div class="layui-inline">
+                    <label class="layui-form-label">关联项目：</label>
+					<div class="layui-input-block ROnceM_Txt">
+					    <select id="ddlProject" lay-filter="ddlProject">
+					    <option value="-999">全部</option>
+                        <option value="0">基础通用</option>
+					    </select>
+					</div>
+                </div>
+                <div class="layui-inline ROnceM_input">
+			    	 	<label class="layui-form-label">培训类型：</label>
+					    <div class="layui-input-block">
+					      <select id="ddlType" lay-filter="ddlType">
+					        <option value="-999">全部</option>
+					      </select>
+					    </div>
+			    	</div>
+			    	<div class="layui-inline">
+			    	 	<label class="layui-form-label">创建日期：</label>
+					    <div class="layui-input-block">
+					     	<select id="ddlPeriod" lay-filter="ddlPeriod">
+                                <option value="-999">全部</option>
+                                <option value="最近三天">最近三天</option>
+                                <option value="最近一周">最近一周</option>
+                                <option value="最近一个月">最近一个月</option>		
+                                <option value="最近三个月">最近三个月</option>	
+                                <option value="最近半年">最近半年</option>
+                                <option value="最近一年">最近一年</option>				       
+                          	</select>
+					    </div>
+			    	</div>
+    		</div>
+    		</form>
+            <div class="crightSearchBtn">
+    			<button class="layui-btn" id="btnSearch" onclick="SearchTrainings()">查 询</button>
+    		</div>
+    	</div>
+    	<hr/>
+        <div class="crightMainSubTit">
+    		<p><strong>结果显示：</strong>根据您输入的条件，我们为您检索到 <span id="txtRecordNumber">-</span> 条记录</p>
+    	</div>
+    	<div class="Allmb_table">
+    		<table class="layui-table" lay-even="" lay-skin="nob">
+			  <colgroup>
+			    <col width="300">
+                <col width="150">
+			    <col width="100">
+			    <col width="100">
+			    <col width="100">
+                <col width="90">
+			  </colgroup>
+			  <thead>
+			    <tr>
+			        <th>培训主题</th>
+                    <th>关联项目</th>
+					<th>培训类型</th>
+					<th>开始日期</th>
+                    <th>结束日期</th>
+                    <th>操作</th>
+			    </tr> 
+			  </thead>
+			  <tbody id="datalist">
+			  </tbody>
+			</table> 
+            <div id="pagecontrol"></div>
+    	</div>
+    	<div class="Txtright">
+    		<button class="layui-btn mt10" id="btnNew" onclick="AddTraining()">新建培训</button>
+		</div> 
+   	</div>
+</div>
+
+
+<div class="LoadingBg" style="display:none">
+	<div class="LoadingMain">
+    	<img src="images/loading.gif" alt=""/>正在读取文件数据并上传...
+    </div>
+</div>
+
+    <script type="text/javascript">
+    	$(function () {
+    	    SearchTrainings();
+    	});
+    </script>
+
+</body>
+</html>

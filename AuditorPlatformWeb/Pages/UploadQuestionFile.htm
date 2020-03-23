@@ -1,0 +1,517 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>文件上传</title>
+
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    
+<meta http-equiv="Expires" content="0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Cache-control" content="no-cache">
+<meta http-equiv="Cache" content="no-cache">
+      
+    <link rel="stylesheet" href="css/layui.css"  media="all">
+    <link rel="stylesheet" href="css/common.css"  media="all">
+    <link href="css/upload.css" rel="stylesheet" type="text/css" />
+
+    <script type="text/javascript" src="js/jquery_2-1-0_min.js"  charset="utf-8"></script>
+    <script src="js/jquery.form.js" type="text/javascript"></script>
+    <script src="js/html5shiv.js" type="text/javascript"></script>
+    <!-[if IE]>  
+    <script src="js/html5.js"></script>  
+    <![endif]–>
+    <script src="js/Common.js" type="text/javascript"></script>
+    <script src="js/layui.js" type="text/javascript" charset="utf-8"></script>
+    <script type="text/javascript">
+        layui.use(['layer', 'element'], function () {
+            var element = layui.element();
+            var layer = layui.layer;
+        });
+
+        $(function () {
+            $.ajaxSettings.async = false;
+
+            var typeID = getUrlParam("TypeID");
+            if (typeID != "" && typeID != null) {
+                $("#hfTypeID").val(typeID);
+            }
+            var relatedID = getUrlParam("RelatedID");
+            if (relatedID != "" && relatedID != null) {
+                $("#hfRelatedID").val(relatedID);
+            }
+            var fileType = getUrlParam("FileType");
+            if (fileType != "" && fileType != null) {
+                $("#hfFileType").val(fileType);
+            }
+            var tempCode = getUrlParam("TempCode");
+            if (tempCode != "" && tempCode != null) {
+                $("#hfTempCode").val(tempCode);
+            }
+            var relatedCode = getUrlParam("RelatedCode");
+            if (relatedCode != "" && relatedCode != null) {
+                $("#hfRelatedCode").val(relatedCode);
+            }
+            var resultID = getUrlParam("ResultID");
+            if (resultID != "" && resultID != null) {
+                $("#hfResultID").val(resultID);
+            }
+
+            if (userType != 7) {
+                $("#txtFileName").attr("disabled", true);
+            }
+
+            LoadFileTypes();
+
+            LoadUploadWidth();
+
+            $("#btnUpload").click(function () {
+                uploadFile();
+            });
+
+            $("#btnClear").click(function () {
+                DoClear();
+            });
+
+            $("#btnClose").click(function () {
+                CloseWindow();
+            });
+
+            if (relatedID != "" && relatedID != null) {
+
+                $("#btnChoose").show();
+                $("#btnChoose").click(function () {
+                    $.ajaxSettings.async = false;
+                    LoadQuestionDeletedFile();
+                    layer.open({
+                        type: 1,
+                        shade: 0.6,
+                        title: false,
+                        area: ['95%', '70%'],
+                        content: $('.aq_EnList')
+                    });
+                    $.ajaxSettings.async = true;
+                });
+
+                $("#btnRecover").click(function () {
+                    var fileID = "";
+                    $("input[name='selectbox']").each(function () {
+                        if ($(this).prop("checked") == true) {
+                            fileID = $(this).val();
+                            return false;
+                        }
+                    });
+                    if (fileID == "") {
+                        layer.alert("请选择需要恢复的文件.");
+                    }
+                    else {
+                        var date = new Date();
+                        var url = '../Logic/Upload.ashx';
+                        $.ajax({
+                            url: url,
+                            data: {
+                                Type: 11,
+                                Date: date,
+                                FileID: fileID
+                            },
+                            dataType: "json",
+                            type: "POST",
+                            traditional: true,
+                            success: function (data) {
+                                if (data == "1") {
+                                    layer.alert("恢复成功！", function (index) {
+                                        layer.close(index);
+                                        CloseWindow();
+                                    });
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+
+            window.onresize = function () {
+                LoadUploadWidth();
+            }
+            $.ajaxSettings.async = true;
+        });
+
+        function LoadQuestionDeletedFile() {
+            var relatedID = $("#hfRelatedID").val();
+            $("#filelist").empty();
+            $("#filelist").append("<tr><td colspan=\"6\" class=\"No_Search\"><img src=\"images/loading.gif\"/>正在加载中，请耐心等待...</td></tr>");
+            var date = new Date();
+            var url = '../Logic/Upload.ashx';
+            //当前页面的附件类型，务必需要指定
+            var documentTypeID = $("#hfTypeID").val();
+            $.getJSON(url, { type: "10", date: date, TypeID: documentTypeID, RelatedID: relatedID }, function (data) {
+
+                $("#filelist").html("");
+                $.each(data, function (i, item) {
+                    var fileSize = item.FileSize;
+                    var id = item.ID;
+                    var str = "<tr>";
+                    if (fileSize >= 1024 * 1024)
+                        fileSize = (Math.round(fileSize * 100 / (1024 * 1024)) / 100).toString() + 'MB';
+                    else
+                        fileSize = (Math.round(fileSize * 100 / 1024) / 100).toString() + 'KB';
+
+                    str += ("<td><input type=\"radio\" lay-filter=\"selectbox\" name=\"selectbox\" lay-skin=\"primary\" value=\"" + id + "\" /> </td>");
+                    str += ("<td>" + item.FileName + "</td>");
+                    str += ("<td>" + fileSize + "</td>");
+                    str += ("<td>" + item.FileTypeName + "</td>");
+                    str += ("<td>" + jsonDateTimeFormatWithoutSeconds(item.InputDate) + "</td>");
+                    str += ("<td>");
+                    str += ("<a href=\"javascript:void(0)\" onclick=\"DownloadFile('" + item.RelevantPath + "','" + id + "','" + item.FileType + "')\">下载</a>&nbsp;&nbsp;");
+                    str += "<input type=\"hidden\" name=\"hfFileType\" value=\"" + item.FileType + "\"/>";
+                    if (item.FileType == "1") {
+                        str += ("&nbsp;&nbsp;<a href=\"javascript:void(0)\" onclick=\"PreViewPhotoBase('" + item.RelevantPath + "', '" + item.FileName + "')\">预览</a>");
+                    }
+                    str += "</td>";
+                    str += "</tr>";
+
+                    $("#filelist").append(str);
+                });
+
+
+                if (JSONLength(data) <= 0) {
+                    $("#filelist").append("<tr><td colspan=\"6\">暂无删除文件</td></tr>");
+                }
+            });
+        }
+
+        function DoClear() {
+            $("#fileField").val("");
+            $("#textfield").val("");
+            $("#txtFileName").val("");
+            $("#lblFileSize").text("");
+            $("#lblStatus").text("未选择文件");
+            $("#ddlFileType").val("-1");
+        }
+
+        function LoadFileTypes() {
+            $("#ddlFileType").empty();
+            $("#ddlFileType").append("<option value=\"-1\">请选择</option>");
+            var filterTypes = $("#hfFileType").val();
+            var date = new Date();
+            var url = '../Logic/Upload.ashx';
+            $.ajax({
+                url: url,
+                data: {
+                    Type: 9,
+                    Date: date,
+                    filterTypes: filterTypes
+                },
+                dataType: "json",
+                type: "GET",
+                traditional: true,
+                success: function (data) {
+                    $.each(data, function (i, item) {
+                        $("#ddlFileType").append("<option value=\"" + item.ID + "\">" + item.Name + "</option>");
+                    });
+                    if (JSONLength(data) == 1) {
+                        $("#ddlFileType").val(data[0].ID);
+                        $("#ddlFileType").attr("disabled", true);
+                    }
+                }
+            });
+        }
+
+        function CloseWindow() {
+            var index = parent.layer.getFrameIndex(window.name); //获取窗口索引
+            parent.layer.close(index);
+        }
+
+        function LoadUploadWidth() {
+            var txtWidth = $(".txt").width();
+            $(".file").width(txtWidth + 85);
+        }
+
+        function PreLoadFileInfo(obj) {
+            var file;
+            if (obj.files) {
+                file = obj.files[0];
+            }
+            if (file) {
+                var fileSize = 0;
+                if (file.size > 1024 * 1024)
+                    fileSize = (Math.round(file.size * 100 / (1024 * 1024)) / 100).toString() + 'MB';
+                else
+                    fileSize = (Math.round(file.size * 100 / 1024) / 100).toString() + 'KB';
+
+                $("#lblFileSize").text("共" + fileSize);
+            }
+            var filePath = $(obj).val();
+            var fileName = filePath.slice(filePath.lastIndexOf('\\')+ 1); 
+            $("#textfield").val(filePath);
+            $("#txtFileName").val(fileName);
+            $("#lblStatus").text("已完成 0%");
+            var date = new Date();
+            var url = '../Logic/Upload.ashx';
+            $.ajax({
+                url: url,
+                data: {
+                    Type: 8,
+                    Date: date,
+                    FileName: fileName
+                },
+                dataType: "text",
+                type: "GET",
+                traditional: true,
+                success: function (data) {
+                    $("#ddlFileType").val(data);
+                    var selectValue = $("#ddlFileType").val();
+                    if (selectValue != data) {
+                        layer.alert("您上传的文件类型不符合要求，请重新上传.", function (index) {
+                            layer.close(index);
+                            DoClear();
+                        });
+                    }
+                }
+            });
+            
+        }
+
+        function uploadFile() {
+            if ($("#ddlFileType").val() == "-1") {
+                layer.alert("请选择文件类型.");
+                return;
+            }
+            var relatedCode = $("#hfRelatedCode").val();
+            relatedCode = unescape(relatedCode);
+            var fileName = document.getElementById("txtFileName").value;
+            var flag = true;
+
+            //规范格式：网点编号-网点名称-题目编号-{原始文件名}.{jpg|png}
+            if (userType != 9) {
+                var fileParts = fileName.split('-');
+                if (fileParts.length < 4) {
+                    layer.alert("上传失败，您上传的文件名称没有按照规范格式命名：网点编号-网点名称-题目编号-{问题描述}.{jpg|png}，请按照规范命名后再尝试上传。");
+                    return;
+                }
+            }
+
+            if (userType != 9 && relatedCode != "" && fileName.indexOf(relatedCode) == -1) {
+                var parts = relatedCode.split('-');
+                var clientCode = parts[0];
+                var clientName = parts[1];
+                var questionCode = parts[2];
+                var msgs = [];
+                if (fileParts[0].Trim() != clientCode.Trim()) {
+                    msgs.push("您上传的文件名称中的网点编号与当前正在录入的网点编号不相符");
+                }
+                if (fileParts[1].Trim() != clientName.Trim()) {
+                    msgs.push("您上传的文件名称中的网点名称与当前正在录入的网点名称不相符");
+                }
+                if (fileParts[2].Trim() != questionCode.Trim()) {
+                    msgs.push("您上传的文件名称中的题目编号与当前正在录入的题目编号不相符");
+                }
+                if (msgs.length > 0) {
+                    var message = "上传失败，原因如下：<br/>";
+                    $.each(msgs, function (n, value) {
+                        message += ((n + 1) + "." + value);
+                        message += "<br/>";
+                    });
+                    layer.alert(message);
+                    return;
+                }
+//                layer.confirm('异常提示：您的文件名称中不包含该题目的编号，请您确认是否需要上传此文件？', {
+//                    btn: ['是', '否'] //按钮
+//                }, function () {
+//                    var fd = new FormData();
+//                    fd.append("type", "1");
+//                    fd.append("TypeID", $("#hfTypeID").val());
+//                    fd.append("RelatedID", $("#hfRelatedID").val());
+//                    fd.append("TempCode", $("#hfTempCode").val());
+//                    fd.append("FileField", document.getElementById("fileField").files[0]);
+//                    fd.append("FileName", fileName);
+//                    var xhr = new XMLHttpRequest();
+//                    xhr.upload.addEventListener("progress", uploadProgress, false);
+//                    xhr.addEventListener("load", uploadComplete, false);
+//                    xhr.addEventListener("error", uploadFailed, false);
+//                    xhr.addEventListener("abort", uploadCanceled, false);
+//                    xhr.open("POST", "../Logic/Upload.ashx");
+//                    xhr.send(fd);
+//                }, function (index) {
+//                    layer.close(index);
+//                });
+
+            }
+            else {
+                var ieVersion = IEVersion();
+                if (ieVersion >= 6 && ieVersion <= 9) {
+                    //ie低版本
+                    var url = "../Logic/Upload.ashx?type=1";
+                    url = url + "&TypeID=" + $("#hfTypeID").val();
+                    url = url + "&RelatedID=" + $("#hfRelatedID").val();
+                    url = url + "&TempCode=" + $("#hfTempCode").val();
+                    url = url + "&RelatedCode=" + $("#hfRelatedCode").val();
+                    url = url + "&ResultID=" + $("#hfResultID").val();
+                    url = url + "&FileName=" + fileName;
+
+                    var options = {
+                        success: showResponse,      //提交后的回调函数
+                        url: url,                 //默认是form的action， 如果申明，则会覆盖
+                        type: 'post',               //默认是form的method（get or post），如果申明，则会覆盖
+                        dataType: 'text',           //html(默认), xml, script, json...接受服务端返回的类型
+                        clearForm: false,          //成功提交后，清除所有表单元素的值
+                        resetForm: false,          //成功提交后，重置所有表单元素的值
+                        timeout: 60000            //限制请求的时间，当请求大于3秒后，跳出请求
+                    }
+                    
+                    //$("#form1").ajaxForm(options);
+                    $('#form1').submit(function () {
+                        $(this).ajaxSubmit(options);
+                        return false; //阻止表单默认提交
+                    });
+                    $('#form1').submit();
+                }
+                else {
+                    //ie高版本或其他浏览器
+                    var fd = new FormData();
+                    fd.append("type", "1");
+                    fd.append("TypeID", $("#hfTypeID").val());
+                    fd.append("RelatedID", $("#hfRelatedID").val());
+                    fd.append("TempCode", $("#hfTempCode").val());
+                    fd.append("RelatedCode", $("#hfRelatedCode").val());
+                    fd.append("ResultID", $("#hfResultID").val());
+                    fd.append("FileField", document.getElementById("fileField").files[0]);
+                    fd.append("FileName", fileName);
+                    var xhr = new XMLHttpRequest();
+                    xhr.upload.addEventListener("progress", uploadProgress, false);
+                    xhr.addEventListener("load", uploadComplete, false);
+                    xhr.addEventListener("error", uploadFailed, false);
+                    xhr.addEventListener("abort", uploadCanceled, false);
+                    xhr.open("POST", "../Logic/Upload.ashx");
+                    xhr.send(fd);
+                }
+            }
+        }
+
+        function showResponse(responseText, statusText) {
+            $("#lblStatus").text("已完成 100%");
+            layer.alert("上传成功！", function (index) {
+                layer.close(index);
+                CloseWindow();
+            });
+        }
+
+        function uploadProgress(evt) {
+            if (evt.lengthComputable) {
+                var percentComplete = Math.round(evt.loaded * 100 / evt.total);
+                if (percentComplete == 100) {
+                    percentComplete = 99.9;
+                }
+                $("#lblStatus").text("已完成 " + percentComplete + "%");
+            }
+            else {
+                $("#lblStatus").text("无法计算");
+            }
+        }
+
+        function uploadComplete(evt) {
+            /* This event is raised when the server send back a response */
+            var docid = parseInt(evt.target.responseText);
+            if (docid > 0) {
+                var percentComplete = 100;
+                $("#lblStatus").text("已完成 " + percentComplete + "%");
+                layer.alert("上传成功！", function (index) {
+                    layer.close(index);
+                    CloseWindow();
+                });
+            }
+            else if (docid == -1) {
+                layer.alert("上传失败，当前登录可能已超时，请重新登录后再尝试.", function (index) {
+                    layer.close(index);
+                    CloseWindow();
+                });
+            }
+        }
+
+        function uploadFailed(evt) {
+            layer.alert("There was an error attempting to upload the file.");
+        }
+
+        function uploadCanceled(evt) {
+            layer.alert("The upload has been canceled by the user or the browser dropped the connection.");
+        }
+    </script>
+
+</head>
+<body>
+<div>
+<form id="form1" enctype="multipart/form-data" method="post" action=""  style="padding: 20px 0px 0px 20px;">
+    <div class="file-box">
+        <label>选择文件：</label>
+        <input type='text' name='textfield' id='textfield' class='txt' />  
+        <button class="layui-btn layui-btn-primary layui-btn-small uploadbtn" id="btnBrowse">浏览文件...</button>
+        <input type="file" name="fileField" class="file" id="fileField" size="30" onchange="PreLoadFileInfo(this)" />
+    </div>
+    <div class="file-box">
+        <label>文件名称：</label>
+        <input type='text' name='textfield' id='txtFileName' class='txt' />  
+    </div>
+    <div class="file-box">
+        <label>文件类型：</label>
+        <select id="ddlFileType" class="select">
+			<option value="-1">请选择</option>
+            <option value="1">图片</option>
+            <option value="2">录音</option>
+            <option value="3">录像</option>
+            <option value="4">文档</option>
+            <option value="5">其他</option>
+		</select>
+        <label class="requiredFields">&nbsp;*（必选）</label>
+    </div>
+    <div class="file-box">
+        <label>上传状态：</label>
+        &nbsp;<label id="lblStatus">未选择文件</label>
+        &nbsp;<label id="lblFileSize"></label>
+    </div>
+ </form>
+
+<hr/>
+<div class="TextCenter mt20">
+    <button class="layui-btn layui-btn-small uploadbtn" id="btnClose">关 闭</button>
+    <button class="layui-btn layui-btn-small uploadbtn" id="btnClear">清 空</button>
+    <button class="layui-btn layui-btn-small uploadbtn" id="btnUpload">上 传</button>
+    <button class="layui-btn layui-btn-small uploadbtn allhide" id="btnChoose">恢复删除</button>
+
+</div> 
+</div>
+
+<div class="aq_EnList allhide">
+	<table class="layui-table" lay-skin="line" style="margin: 0px;">  
+		<thead>
+		<tr>
+            <th width="30px">选择</th>
+			<th>文件名称</th>
+			<th width="68px">文件大小</th>
+			<th width="50px">类型</th>
+			<th width="120px">上传时间</th>
+			<th width="80px">操作</th>
+		</tr> 
+		</thead>
+		<tbody id="filelist">
+		    <tr><td colspan="6">暂无删除文件</td></tr>
+		</tbody>
+	</table> 
+    <div class="TextCenter mt10">
+        <button class="layui-btn layui-btn-small uploadbtn" id="btnRecover">确 定</button>
+    </div>
+</div>
+
+    <input type="hidden" id="hfTypeID" />	 
+    <input type="hidden" id="hfRelatedID" />	 
+    <input type="hidden" id="hfFileType" />
+    <input type="hidden" id="hfTempCode" />
+    <input type="hidden" id="hfRelatedCode" />
+    <input type="hidden" id="hfResultID" />
+
+</body>
+</html>

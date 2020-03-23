@@ -1,0 +1,631 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>渠道核查在线管理平台</title>
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">  
+  <link rel="stylesheet" href="css/layui.css"  media="all">
+  <link rel="stylesheet" href="css/common.css"  media="all">
+  <link rel="stylesheet" href="css/Alert.css"  media="all">
+  <script type="text/javascript" src="js/jquery_2-1-0_min.js"  charset="utf-8"></script>
+  <script src="js/layui.js" charset="utf-8" type="text/javascript"></script>
+  <script src="js/Common.js" type="text/javascript"></script>
+
+  <script src="js/ajaxfileupload.js" type="text/javascript"></script>
+
+  <style type="text/css">
+    .UploadBtn{ width:80px;position:relative;text-align:center;overflow:hidden; border:0 none;margin:0px 0px 0px 10px; font-size:14px; color:#fff; padding:0 5px; height:38px; line-height:38px; font-family:"微软雅黑"; display:inline-block; cursor: pointer; background-color:#383c48;opacity: 0.9; filter:alpha(opacity=90);border-radius:2px;}  
+    .UploadBtn:hover{ opacity: 0.8; filter:alpha(opacity=80); color: #fff;}
+    .fileupload{ position:absolute; bottom:0;left:0;font-size:100px;height:130%;width:100%;z-index:1;opacity:0;filter:alpha(opacity=0); cursor: pointer;}
+  </style>
+
+  <script type="text/javascript" language="javascript">
+
+      layui.use(['form', 'layedit', 'laydate'], function () {
+            var form = layui.form()
+            , layer = layui.layer
+            , layedit = layui.layedit
+            , laydate = layui.laydate;
+
+            var start = {
+                istoday: false
+                , choose: function (datas) {
+                    end.min = datas; //开始日选好后，重置结束日的最小日期
+                    end.start = datas //将结束日的初始值设定为开始日
+                }
+            };
+
+          var end = {
+              istoday: false
+                , choose: function (datas) {
+                    start.max = datas; //结束日选好后，重置开始日的最大日期
+                }
+          };
+          document.getElementById('calFromDate').onclick = function () {
+              start.elem = this;
+              laydate(start);
+          }
+          document.getElementById('calToDate').onclick = function () {
+              end.elem = this
+              laydate(end);
+          }
+      });
+
+      $(function () {
+          $.ajaxSettings.async = false;
+
+          var id = getUrlParam("id");
+          if (id != "" && id != null) {
+              $("#hfID").val(id);
+          }
+          
+          LoadTrainingTypes();
+
+          LoadAllProjects();
+
+          LoadData();
+
+          LoadTrainingFiles();
+
+          LoadPageStatus();
+
+          $("#btnCancel").click(function () {
+              if ($("#hfID").val() != "") {
+                  var url = window.location.href.split('?')[0];
+                  window.location = url + "?id=" + $("#hfID").val() + "&st=1";
+              }
+              else {
+                  $("#btnBack").click();
+              }
+          });
+          $("#btnSave").click(function () {
+              if (DoValidate() == false) {
+                  return false;
+              }
+              DoSave();
+          });
+          $("#btnDelete").click(function () {
+              layer.confirm('您确定要删除该培训吗？', {
+                  btn: ['确定', '取消']
+              }, function (index) {
+                  layer.close(index);
+                  DoDelete();
+              });
+          });
+          $("#btnEdit").click(function () {
+              var url = window.location.href.split('?')[0];
+              window.location = url + "?id=" + $("#hfID").val() + "&st=2";
+          });
+          $("#btnBack").click(function () {
+              window.location = "TrainingList.htm";
+          });
+
+          if (userType != 1 && userType != 7 && userType != 8) {
+              $("#btnEdit").hide();
+              $("#btnDelete").hide();
+          }
+
+          LoadUpload();
+
+          $.ajaxSettings.async = true;
+      });
+
+
+      function LoadUpload() {
+          $('#fileupload').change(function () {
+              AjaxFileUpload();
+          });
+      }
+
+      function AjaxFileUpload() {
+          $(".LoadingBg").show();
+          $.ajaxFileUpload({
+              url: '../Logic/Training.ashx?type=6&id=' + $("#hfID").val(),
+              secureuri: false,
+              fileElementId: 'fileupload',
+              dataType: 'TEXT',
+              success: function (data, status) {
+                  $(".LoadingBg").hide();
+                  var result = "";
+                  var xmlDoc;
+                  try {
+                      xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
+                      xmlDoc.async = "false";
+                      xmlDoc.loadXML(data);
+                  }
+                  catch (e) {
+                      try {
+                          parser = new DOMParser();
+                          xmlDoc = parser.parseFromString(data, "text/xml");
+                      }
+                      catch (e) {
+                          alert(e.message);
+                          return;
+                      }
+                  }
+                  result = xmlDoc.getElementsByTagName("pre")[0].childNodes[0].nodeValue;
+                  if (result != "0") {
+                      layer.alert("上传成功");
+                      LoadTrainingFiles();
+                  }
+                  else
+                  {
+                      layer.alert("上传失败");
+                  }
+                  var file = $("#fileupload");
+                  file.after(file.clone().val(""));
+                  file.remove();
+                  $('#fileupload').change(function () {
+                      AjaxFileUpload();
+                  });
+              },
+              error: function (data, status, e) {
+                  $(".LoadingBg").hide();
+                  layer.alert("上传出错，错误信息如下：\r\n" + e.toString());
+                  var file = $("#fileupload")
+                  file.after(file.clone().val(""));
+                  file.remove();
+                  $('#fileupload').change(function () {
+                      AjaxFileUpload();
+                  });
+              }
+          });
+      }
+
+      function LoadTrainingFiles() {
+          var trainingID = $("#hfID").val();
+          if (trainingID == "") {
+              return;
+          }
+          $("#filelist").empty();
+          $("#filelist").append("<tr><td colspan=\"5\" class=\"No_Search\"><img src=\"images/loading.gif\"/>正在加载中，请耐心等待...</td></tr>");
+          var date = new Date();
+          var url = '../Logic/Training.ashx';
+          $.getJSON(url, { type: "2", date: date, trainingID: trainingID }, function (data) {
+
+              $("#filelist").html("");
+              $.each(data, function (i, item) {
+                  var fileSize = item.FileSize;
+                  var id = item.ID;
+                  var str = "<tr>";
+                  if (fileSize >= 1024 * 1024)
+                      fileSize = (Math.round(fileSize * 100 / (1024 * 1024)) / 100).toString() + 'MB';
+                  else
+                      fileSize = (Math.round(fileSize * 100 / 1024) / 100).toString() + 'KB';
+                  str += ("<td>" + item.FileName + "</td>");
+                  str += ("<td>" + fileSize + "</td>");
+                  str += ("<td>" + item.FileTypeName + "</td>");
+                  str += ("<td>" + jsonDateTimeFormatWithoutSeconds(item.InputDate) + "</td>");
+                  str += ("<td>");
+                  str += ("<a href=\"javascript:void(0)\" onclick=\"DoDownloadFile('" + item.RelevantPath + "','" + id + "','" + item.FileType + "')\">下载</a>&nbsp;&nbsp;");
+                  str += ("<a href=\"javascript:void(0)\" onclick=\"DoDeleteFile('" + id + "')\">删除</a>");
+                  str += "<input type=\"hidden\" name=\"hfFileType\" value=\"" + item.FileType + "\"/>";
+                  str += "</td>";
+                  str += "</tr>";
+
+                  $("#filelist").append(str);
+              });
+
+
+              if (JSONLength(data) <= 0) {
+                  $("#filelist").append("<tr><td colspan=\"5\">暂无文件</td></tr>");
+              }
+          });
+      }
+
+      function DoDownloadFile(url,id,filetype){
+        if (filetype == "1") {
+            //图片
+            DoDownloadPic(id);
+        }
+        else {
+            window.open(url, "_parent");
+        }
+      }
+
+    function DoDownloadPic(id) {
+        var form = $("<form>"); //定义一个form表单
+        form.attr("style", "display:none");
+        form.attr("target", "");
+        form.attr("method", "post");
+        form.attr("action", "../Logic/Training.ashx?type=7");
+        var input1 = $("<input>");
+        input1.attr("type", "hidden");
+        input1.attr("name", "date");
+        input1.attr("value", (new Date()).getMilliseconds());
+        var input2 = $("<input>");
+        input2.attr("type", "hidden");
+        input2.attr("name", "id");
+        input2.attr("value", id);
+        $("body").append(form); //将表单放置在web中
+        form.append(input1);
+        form.append(input2);
+        form.submit(); //提交下载 
+    }
+
+      function DoDeleteFile(id) {
+          layer.confirm('您确定要删除该文件吗？', {
+              btn: ['确定', '取消']
+          }, function (index) {
+              layer.close(index);
+              var date = new Date();
+              var url = '../Logic/Training.ashx';
+              $.ajax({
+                  url: url,
+                  data: {
+                      Type: 8,
+                      Date: date,
+                      FileID: id
+                  },
+                  dataType: "json",
+                  type: "POST",
+                  traditional: true,
+                  success: function (data) {
+                      if (data == "1") {
+                          layer.alert("删除成功！", function (index) {
+                              layer.close(index);
+                              LoadTrainingFiles();
+                          });
+                      }
+                  }
+              });
+          });
+      }
+
+      function DoDelete() {
+          var id = $("#hfID").val();
+          var date = new Date();
+          var url = '../Logic/Training.ashx';
+          $.ajax({
+              url: url,
+              data: {
+                  Type: 5,
+                  Date: date,
+                  id: id
+              },
+              dataType: "json",
+              type: "POST",
+              traditional: true,
+              success: function (data) {
+                  if (data == "1") {
+                      $("#btnBack").click();
+                  }
+                  else {
+                      layer.alert("删除失败！");
+                  }
+              },
+              error: function () {
+                  layer.alert("删除失败！");
+              }
+          });
+      }
+
+      function LoadData() {
+          var id = $("#hfID").val();
+          if(id == ""){
+            return;
+          }
+          var date = new Date();
+          var url = '../Logic/Training.ashx';
+          $.getJSON(url, { type: "1", date: date, id: id }, function (data) {
+              var pdo = data;
+              $("#txtName").val(pdo.Title);
+              $("#calFromDate").val(jsonDateFormat(pdo.FromDate));
+              $("#calToDate").val(jsonDateFormat(pdo.ToDate));
+              $("#ddlType").val(pdo.TypeID);
+              $("#ddlProject").val(pdo.ProjectID);
+              $("#txtDescription").val(pdo.Description);
+          });
+      }
+
+      function DoValidate() {
+          var name = $("#txtName").val();
+          var fromdate = $("#calFromDate").val();
+          var todate = $("#calToDate").val();
+          var typeID = $("#ddlType").val();
+          var projectID = $("#ddlProject").val();
+
+          var msgs = [];
+          if (name == "") {
+              msgs.push("请输入<b>培训主题</b>.");
+          }
+          if (fromdate == "") {
+              msgs.push("请输入培训的<b>开始日期</b>.");
+          }
+          if (todate == "") {
+              msgs.push("请输入培训的<b>截止日期</b>.");
+          }
+          if (typeID == "") {
+              msgs.push("请选择<b>培训类型</b>.");
+          }
+          if (projectID == "") {
+              msgs.push("请选择培训的<b>关联项目</b>.");
+          }
+          if (msgs.length > 0) {
+              var message = "";
+              $.each(msgs, function (n, value) {
+                  message += ((n + 1) + "." + value);
+                  message += "<br/>";
+              });
+              layer.alert(message);
+              return false;
+          }
+          else {
+              return true;
+          }
+      }
+
+      function DoSave() {
+          var name = $("#txtName").val();
+          var fromdate = $("#calFromDate").val();
+          var todate = $("#calToDate").val();
+          var typeID = $("#ddlType").val();
+          var projectID = $("#ddlProject").val();
+          var description = $("#txtDescription").val();
+          var id = $("#hfID").val();
+          var date = new Date();
+          var url = '../Logic/Training.ashx';
+          $.ajax({
+              url: url,
+              data: {
+                  Type: 4,
+                  Date: date,
+                  id: id,
+                  name: name,
+                  fromDate: fromdate,
+                  toDate: todate,
+                  typeID: typeID,
+                  projectID: projectID,
+                  description: description
+              },
+              dataType: "json",
+              type: "POST",
+              traditional: true,
+              success: function (data) {
+                  $("#hfID").val(data);
+                  layer.alert("保存成功！", function () { $("#btnCancel").click(); });
+              },
+              error: function () {
+                  layer.alert("保存失败！");
+              }
+          });
+          return true;
+
+      }
+
+
+      function LoadPageStatus() {
+          //0 - add new status
+          //1 - view saved status
+          //2 - editing status
+          var st = getUrlParam("st");
+          if (st == "" || st == null) {
+              st = "0";
+          }
+          SetControlStatus(st);
+      }
+
+      function SetPageTabs(status) {
+          if (status == "0") {
+              $("#tabCurrent").text("新建培训");
+          }
+          else if (status == "1") {
+              $("#tabCurrent").text("查看培训");
+          }
+          else {
+              $("#tabCurrent").text("编辑培训");
+          }
+      }
+
+      function SetControlStatus(status) {
+          SetPageTabs(status);
+          if (status == "0" || status == "2") {
+              //add new status / editing status
+              $("#txtName").removeAttr("disabled");
+              $("#calFromDate").removeAttr("disabled");
+              $("#calToDate").removeAttr("disabled");
+              $("#ddlType").removeAttr("disabled");
+              $("#ddlProject").removeAttr("disabled");
+              $("#txtDescription").removeAttr("disabled");
+
+              $("#btnCancel").show();
+              $("#btnSave").show();
+              $("#btnEdit").hide();
+              $("#btnBack").hide();
+              $("#btnDelete").hide();
+          }
+          else {
+              //view saved status
+              $("#txtName").attr("disabled", true);
+              $("#calFromDate").attr("disabled", true);
+              $("#calToDate").attr("disabled", true);
+              $("#ddlType").attr("disabled", true);
+              $("#ddlProject").attr("disabled", true);
+              $("#txtDescription").attr("disabled", true);
+
+              $("#btnCancel").hide();
+              $("#btnSave").hide();
+              $("#btnEdit").show();
+              $("#btnBack").show();
+              $("#btnDelete").show();
+
+              $("#btnUpload").show();
+          }
+      }
+
+
+      function LoadTrainingTypes() {
+          $('#ddlType').empty();
+          $('#ddlType').append("<option value=''>请选择</option>");
+          var date = new Date();
+          var url = '../Logic/BusinessConfiguration.ashx';
+          $.ajax({
+              url: url,
+              data: {
+                  Type: 1,
+                  Date: date,
+                  name: 'TrainingType'
+              },
+              dataType: "json",
+              type: "GET",
+              traditional: true,
+              success: function (data) {
+                  $.each(data, function (i, item) {
+                      $('#ddlType').append("<option value='" + item.ID + "'>" + item.Name + "</option>");
+                  });
+              },
+              error: function () {
+              }
+          });
+      }
+
+      function LoadAllProjects() {
+          $("#ddlProject").empty();
+          $("#ddlProject").append("<option value=''>请选择</option>");
+          $("#ddlProject").append("<option value='0'>基础通用</option>");
+          var date = new Date();
+          var url = '../Logic/Project.ashx';
+          $.getJSON(url, { type: "17", date: date }, function (data) {
+              $.each(data, function (i, item) {
+                  $("#ddlProject").append("<option value='" + item.ID + "'>" + item.Name + "</option>");
+              });
+          });
+      }
+
+</script>
+</head>
+<body>
+<!--母版页-->
+<div id="CommonTop"></div>
+<div id="CommonLeft"></div>
+<script type="text/javascript">
+	$(function () {
+	    $("#CommonTop").load("CommonTop.htm?s=" + (new Date()).toLocaleTimeString());
+	    LoadCurrentLeft();
+	});
+</script>
+<!--内容页-->
+<div class="layui-tab layui-tab-brief" lay-filter="demoTitle">
+		<div class="right_titleM">
+			<div class="right_firstTit">
+				<span class="fr"></span>
+				培训管理
+			</div>
+		</div>
+	<!---------------------------------------以下每个页面更换-------------------------------------------->
+    <div class="layui-body layui-tab-content crightMain">
+    	<div class="crightMainTitle">
+    		<div class="layui-tab lpaperItitle">
+			  <ul class="layui-tab-title">
+			    <li>所有培训</li>	    	    
+                <li class="layui-this" id="tabCurrent">新建培训</li>	    	    
+			  </ul>
+			</div>
+			</div>
+			<div class="LrightMain">
+	    	<form class="layui-form" action="">
+		    	<div class="CsearchInputM">    			
+		    		<div class="layui-inline">
+                        <label class="layui-form-label"><span class="requiredFields">*</span>培训主题：</label>
+					    <div class="layui-input-block text_InputM">
+					    <input type="text" id="txtName" name="title" lay-verify="title" autocomplete="off" placeholder="" class="layui-input">
+					    </div>
+					</div>
+                    <div class="layui-inline">
+					    <label class="layui-form-label"><span class="requiredFields">*</span>培训类型：</label>
+					    <div class="layui-input-block text_InputM">
+					    <select class="ddlType" id="ddlType">
+		                    <option value="">请选择</option>          
+		                </select>
+					    </div>
+					</div>
+                    <div class="layui-inline">
+					    <label class="layui-form-label"><span class="requiredFields">*</span>关联项目：</label>
+					    <div class="layui-input-block text_InputM">
+					    <select class="ddlProject" id="ddlProject">
+		                    <option value="">请选择</option>          
+		                </select>
+					    </div>
+					</div>
+
+                    
+		    	</div>
+                <div class="CsearchInputM">    	
+					<div class="layui-inline">
+					    <label class="layui-form-label"><span class="requiredFields">*</span>开始日期：</label>
+					    <div class="layui-input-block">
+					    <input class="layui-input" placeholder="" id="calFromDate">
+					    <div class="InputDateInco">
+						    	<img src="images/InputDateInco.png" />
+						    </div>
+					    </div>
+					</div>
+					<div class="layui-inline">
+					    <label class="layui-form-label"><span class="requiredFields">*</span>截止日期：</label>
+					    <div class="layui-input-block">
+						    <input class="layui-input" placeholder="" id="calToDate">
+						    <div class="InputDateInco">
+						    	<img src="images/InputDateInco.png" />
+						    </div>
+					    </div>
+					</div>
+                </div>
+                <div class="CsearchInputM">    	
+                    <div class="layui-form-item layui-form-text mt10 ">
+					    <label class="layui-form-label">培训介绍：</label>
+					    <div class="layui-input-block">
+					        <textarea placeholder="" class="layui-textarea" id="txtDescription"></textarea>
+					    </div>
+					</div>		
+		    	</div>
+                    
+	    	</form>
+            <fieldset class="layui-elem-field layui-field-title">
+              <legend style="font-size: 14px; font-weight:700;">培训资料</legend>
+              <div class="layui-field-box">
+			    <table class="layui-table" lay-skin="line">  
+				    <thead>
+				    <tr>
+					    <th>资料名称</th>
+					    <th width="100">文件大小</th>
+					    <th width="100">类型</th>
+					    <th width="200">上传时间</th>
+					    <th width="150">操作</th>
+				    </tr> 
+				    </thead>
+				    <tbody id="filelist">
+				    <tr><td colspan="5">暂无文件</td></tr>
+				    </tbody>
+			    </table>   
+              </div>
+            </fieldset>
+    	</div>
+        <div class="Txtright">
+    		<button class="layui-btn lBtn_black mt10" id="btnBack">返  回</button>
+            <button class="layui-btn lBtn_black mt10" id="btnCancel">取  消</button>
+            <button class="layui-btn lBtn_black mt10" id="btnEdit">编  辑</button>
+    		<button class="layui-btn lBtn_black mt10" id="btnSave">保  存</button>	
+            <button class="layui-btn lBtn_black mt10" id="btnDelete">删  除</button>		
+            <input type="hidden" id="hfID" />	   
+            <div id="btnUpload" class="UploadBtn lBtn_black" style="margin-bottom: -20px; cursor: pointer; display: none;">  
+                上 传
+                <input type="file" id="fileupload" class="fileupload" name="fileupload" size="100"/>  
+            </div> 
+		</div> 
+
+        </div>
+    </div>
+
+<div class="LoadingBg" style="display:none">
+	<div class="LoadingMain">
+    	<img src="images/loading.gif" alt=""/>正在传输文件...
+    </div>
+</div>
+
+</body>
+</html>

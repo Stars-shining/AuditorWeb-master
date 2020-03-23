@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>渠道核查在线管理平台</title>
+<link rel="shortcut icon" href="favicon.ico"/>
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">  
+
+  <meta http-equiv="Expires" content="0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Cache-control" content="no-cache">
+<meta http-equiv="Cache" content="no-cache">
+
+  <link href="layui/css/layui.css" rel="stylesheet" type="text/css" />
+  <link rel="stylesheet" href="css/common.css"  media="all">
+  <link href="css/Projectnfo.css" rel="stylesheet" type="text/css" media="all"/>
+  <script type="text/javascript" src="js/jquery_2-1-0_min.js"  charset="utf-8"></script>
+  <script src="js/jquery.base64.js" type="text/javascript"></script>
+  <script src="js/Common.js" type="text/javascript"></script>
+  <script src="js/layui.js" type="text/javascript"></script>
+  <script src="echarts/echarts-all.js" type="text/javascript"></script>
+  
+  <style type="text/css">
+    .layui-table th{ text-align: center;}
+  </style>
+
+  <script type="text/javascript" language="javascript">
+
+      $(function () {
+
+          $.ajaxSettings.async = false;
+
+          var id = getUrlParam("id");
+          if (id != "" && id != null) {
+              $("#hfCurrentClientID").val(id);
+          }
+
+          LoadClientName();
+
+          LoadQuestionnaires();
+
+          layui.use('form', function () {
+              var form = layui.form();
+
+              form.on('select(ddlQuestionnaire)', function (data) {
+                  InitPeriod();
+                  LoadQuestions();
+              });
+
+              form.on('select(ddlQuestion)', function (data) {
+                  Search();
+              });
+
+              form.on('select(ddlPeriod)', function (data) {
+                  Search();
+              });
+          });
+
+          Search();
+
+          $.ajaxSettings.async = true;
+      });
+
+      function LoadQuestions() {
+          var questionnaireID = $("#ddlQuestionnaire").val();
+          var date = new Date();
+          var url = '../Logic/Question.ashx';
+          $("#ddlQuestion").empty();
+          $.getJSON(url, { type: "35", date: date, questionnaireID: questionnaireID }, function (data) {
+              $.each(data, function (i, item) {
+                  $("#ddlQuestion").append("<option value=\"" + item.ID + "\">" + item.Code + " " + item.Title + "</option>");
+              });
+
+              layui.use('form', function () {
+                  var form = layui.form();
+                  form.render('select');
+              });
+
+              Search();
+          });
+      }
+
+      function LoadQuestionAnswerOptions() {
+          var questionnaireID = $("#ddlQuestionnaire").val();
+          var questionID = $("#ddlQuestion").val();
+          var period = $("#ddlPeriod").val();
+          var clientID = $("#hfCurrentClientID").val();
+          var questionName = $("#ddlQuestion").find("option:selected").text();
+
+          $("#optionList").empty();
+          var date = new Date();
+          var url = '../Logic/Question.ashx';
+          $.getJSON(url, { type: "36", date: date, questionnaireID: questionnaireID, questionID: questionID, period: period, clientID: clientID }, function (data) {
+              var resultCount = 0;
+              var recordCount = data.length + 1;
+              $.each(data, function (i, item) {
+                  resultCount = item.OptionCount + resultCount;
+              });
+              var str = ("<tr>");
+              str += ("<td rowspan=\"" + recordCount + "\" style=\"position: static;!important;\">" + questionName + "</td>");
+              str += ("<td align=\"left\">合计</td>");
+              str += ("<td>" + resultCount + "</td>");
+              str += ("<td>100%</td>");
+              str += ("</tr>");
+
+              $.each(data, function (i, item) {
+                  str += ("<tr>");
+                  str += ("<td align=\"left\">" + item.Title + "</td>");
+                  str += ("<td>" + item.OptionCount + "</td>");
+                  str += ("<td>" + toPercent(item.OptionPercentage) + "</td>");
+                  str += ("</tr>");
+              });
+
+              $("#optionList").append(str);
+
+              SetDiagram(data);
+              SetSubClientsTableHeader(questionName, data);
+          });
+
+      }
+
+      function SetSubClientsTableHeader(questionName, dataOptions) {
+          var optionNum = dataOptions.length + 1;
+          var optionNumDouble = optionNum * 2;
+          var str = "<tr>";
+          str += "<th rowspan=\"3\">编号</th>";
+          str += "<th rowspan=\"3\">机构名称</th>";
+          str += "<th colspan=\"" + optionNumDouble + "\" align=\"left\">" + questionName + "</th>";
+          str += "<th rowspan=\"3\"></th>";
+          str += "</tr>";
+
+          str += "<tr>";
+          str += "<th colspan=\"2\">合计</th>";
+          $.each(dataOptions, function (i, item) {
+              str += "<th colspan=\"2\">" + item.Title + "</th>";
+          });
+          str += "</tr>";
+          str += "<tr>";
+          str += "<th>数量</th>";
+          str += "<th>占比</th>";
+          $.each(dataOptions, function (i, item) {
+              str += "<th>数量</th>";
+              str += "<th>占比</th>";
+          });
+          str += "</tr>";
+          $("#columnlist").empty();
+          $("#columnlist").append(str);
+      }
+
+      function SetDiagram(dataOptions) {
+          var values = [];
+          $.each(dataOptions, function (i, item) {
+              var row = { value: item.OptionCount, name: item.Title };
+              values.push(row);
+          });
+          var option = {
+              title: {
+                  text: '指标示意图',
+                  subtext: '',
+                  x: 'center',
+                  y: 'bottom',
+                  textStyle: {
+                      fontSize: 12,
+                      color: '#333333'
+                  },
+                  padding: 0
+              },
+              tooltip: {
+                  trigger: 'item',
+                  formatter: "{a} <br/>{b} : {c} ({d}%)"
+              },
+              calculable: true,
+              series: [
+        {
+            name: '',
+            type: 'pie',
+            radius: '55%',
+            center: ['50%', '50%'],
+            data: values
+        }
+    ]
+          };
+
+          var myChart1 = echarts.init(document.getElementById('scoreDiagram'));
+          myChart1.setOption(option);
+          window.onresize = function () {
+              myChart1.resize();
+          }
+      }
+      
+      function LoadAreaUser() {
+          var date = new Date();
+          var url = '../Logic/Project.ashx';
+          $.getJSON(url, { type: "11", date: date}, function (data) {
+              var pdo = data;
+              BHasAreaUser = pdo.BHasAreaUser;
+          });
+      }
+
+      function LoadClientName() {
+          var id = $("#hfCurrentClientID").val();
+          if (id == "") {
+              $("#txtClientName").text(userName);
+              if (userType != 9) {
+                  $("#txtClientName").text("银联总公司");
+              }
+          }
+          else {
+              var date = new Date();
+              var url = '../Logic/Clients.ashx';
+              $.getJSON(url, { type: "6", date: date, id: id }, function (data) {
+                  var pdo = data;
+                  $("#txtClientName").text(pdo.Name);
+              });
+          }
+      }
+
+      function Search() {
+          var questionnaireID = $("#ddlQuestionnaire").val();
+          var questionID = $("#ddlQuestion").val();
+          var period = $("#ddlPeriod").val();
+          var clientID = $("#hfCurrentClientID").val();
+          var questionName = $("#ddlQuestion").find("option:selected").text();
+
+          LoadQuestionAnswerOptions();
+
+          var pageSize = 100;
+          $("#datalist").empty();
+          $("#datalist").append("<tr><td colspan=\"8\" class=\"No_Search\"><img src=\"images/loading.gif\"/>正在后台处理中，请耐心等待...</td></tr>");
+          var date = new Date();
+          var url = '../Logic/Question.ashx';
+          $.getJSON(url, { type: "37", date: date, questionnaireID: questionnaireID, questionID: questionID, period: period, clientID: clientID }, function (data) {
+              BindData(data, pageSize, 1);
+          });
+      }
+
+      function BindData(data, pageSize, pageIndex) {
+          var perPage = pageSize;
+          var index = 0;
+
+          $("#datalist").empty();
+          $.each(data, function (i, fullStatusItem) {
+              index = i + 1;
+              var currentIndex = parseInt(i / perPage + 1);
+              if (currentIndex == pageIndex) {
+                  var str = "<tr>";
+                  var clientID = fullStatusItem.ClientID;
+                  var clientCode = fullStatusItem.ClientCode;
+                  var clientName = fullStatusItem.ClientName;
+                  var totalNumber = fullStatusItem.TotalCount;
+
+                  str += "<td>" + clientCode + "</td>";
+                  str += "<td>" + clientName + "</td>";
+                  str += "<td align=\"center\">" + totalNumber + "</td>";
+                  str += "<td align=\"center\">100%</td>";
+                  for (var key in fullStatusItem) {
+                      if (key.indexOf("_Count") != -1) {
+                          str += "<td align=\"center\">" + fullStatusItem[key] + "</td>";
+                      }
+                      if (key.indexOf("_Percentage") != -1) {
+                          str += "<td align=\"center\">" + toPercent(fullStatusItem[key]) + "</td>";
+                      }
+                  }
+
+                  str += "<td><a href=\"javascript:void(0)\" class=\"Allmb_Opera\" onclick=\"ViewSubClientStatus('" + clientID + "');\">查看</a></td>";
+                  str += "</tr>";
+                  $("#datalist").append(str);
+              }
+          });
+          var totalNumber = index;
+          $("#txtRecordNumber").text(totalNumber);
+          var pageNumber = parseInt(totalNumber / perPage + 1);
+          if (totalNumber > 0 && totalNumber % perPage == 0) {
+              pageNumber = pageNumber - 1;
+          }
+
+//          layui.use(['laypage'], function () {
+//              var laypage = layui.laypage;
+//              laypage.render({
+//                  elem: 'pagecontrol'
+//                  , count: totalNumber
+//                  , limit: pageSize
+//                  , jump: function (obj, first) {
+//                      //BindData(data, pageSize, obj.curr);
+//                  }
+//                });
+          //          });
+          layui.use(['laypage'], function () {
+              var laypage = layui.laypage;
+              laypage({
+                  cont: 'pagecontrol', //容器。值支持id名、原生dom对象，jquery对象。【如该容器为】：<div id="page1"></div>
+                  pages: pageNumber, //通过后台拿到的总页数
+                  curr: pageIndex || 1, //当前页
+                  jump: function (obj, first) { //触发分页后的回调
+                      if (!first) { //点击跳页触发函数自身，并传递当前页：obj.curr
+                          BindData(data, pageSize, obj.curr);
+                      }
+                  }
+              });
+          });
+          if (totalNumber <= 0) {
+              $("#datalist").append("<tr><td colspan=\"10\" class=\"No_Search\">暂无数据</td></tr>");
+          }
+      }
+
+      function ViewSubClientStatus(id) {
+          window.location = "ClientStatus_Demo2.htm?id=" + id;
+      }
+
+      function InitPeriod() {
+          $("#ddlPeriod").empty();
+          var qid = $("#ddlQuestionnaire").val();
+          var date = new Date();
+          var url = '../Logic/Questionnaire.ashx';
+          $("#ddlPeriod").empty();
+          $.getJSON(url, { type: "18", date: date, qid: qid }, function (data) {
+              $.each(data, function (i, item) {
+                  var periodValue = jsonDateFormat(item.FromDate) + "|" + jsonDateFormat(item.ToDate);
+                  $("#ddlPeriod").append("<option value=\"" + periodValue + "\">" + item.Period + "</option>");
+              });
+              layui.use('form', function () {
+                  var form = layui.form();
+                  form.render('select');
+              });
+          });
+      }
+
+      function LoadQuestionnaires() {
+          var date = new Date();
+          var url = '../Logic/Questionnaire.ashx';
+          $("#ddlQuestionnaire").empty();
+          $.getJSON(url, { type: "1", date: date }, function (data) {
+              $.each(data, function (i, item) {
+                  $("#ddlQuestionnaire").append("<option value=\"" + item.ID + "\">" + item.Name + "</option>");
+              });
+
+              InitPeriod();
+              LoadQuestions();
+          });
+      }
+  </script>
+
+</head>
+<body>
+<!--母版页-->
+    <div id="CommonTop"></div>
+    <div id="CommonLeft"></div>
+	<script type="text/javascript">
+	    $(function () {
+	        $("#CommonTop").load("CommonTop.htm?s=" + (new Date()).toLocaleTimeString());
+	        LoadCurrentProjectLeft();
+	        $("#CommonProjectTop").load("CommonProjectTop.htm");
+	    });
+    </script>
+<!--内容页-->
+<div class="layui-tab layui-tab-brief" lay-filter="demoTitle">
+    <div id="CommonProjectTop"></div>   
+    <div class="layui-body layui-tab-content crightMain">
+        <div class="crightMainTitle">
+    		<div class="layui-tab lpaperItitle">
+			  <ul class="layui-tab-title">
+			    <li class="layui-this">指标分析</li>
+                <!--<li><a href="ClientStatus_Demo3.htm">交叉分析</a></li>-->
+			  </ul>
+			</div>
+			</div>
+    	<div class="crightMainSubTit">
+    		<strong>当前查看机构：<span id="txtClientName">银联总公司</span></strong>
+    	</div>
+        <div class="crightSearch">
+    		<form class="layui-form" action="" onsubmit="return false">
+    		<div class="CsearchInputM">    			
+                <div class="layui-inline">
+			        <label class="layui-form-label">执行问卷：</label>
+				    <div class="layui-input-block" style="width:300px;">
+					    <select id="ddlQuestionnaire" lay-filter="ddlQuestionnaire">
+                            <option value="">请选择</option>
+					    </select>
+				    </div>
+			    </div>
+                <div class="layui-inline">
+			        <label class="layui-form-label">执行期次：</label>
+				    <div class="layui-input-block" style="width:300px;">
+					    <select id="ddlPeriod" lay-filter="ddlPeriod">
+                            <option value="">请选择</option>
+					    </select>
+				    </div>
+			    </div>
+                <div class="layui-inline">
+			        <label class="layui-form-label">选择指标：</label>
+				    <div class="layui-input-block" style="width:300px;">
+					    <select id="ddlQuestion" lay-filter="ddlQuestion">
+					    </select>
+				    </div>
+			    </div>
+                 <div class="layui-inline fr">
+			    	<button class="layui-btn" id="btnApply" onclick="Search()">查 询</button>
+                    <button class="layui-btn paddingleft30px">下 载</button>
+			    </div>                
+            </div>
+    		</form>
+    	</div>
+    	<hr/>
+        <fieldset class="layui-elem-field mt20 allhide">
+            <legend style="font-size:14px;">全流程状态 (核查总数：<span id="txtTotal">-</span>)</legend>
+            <div class="layui-field-box mt10">
+                <div class="layui-btn aq-btn-pre layui-btn-radius">未上传(<span id="txtUnUpload">-</span>)</div><img src="images/pointer.png"/>
+                <div class="layui-btn aq-btn-pre">审核中(<span id="txtCityUserAudit">-</span>)</div><img src="images/pointer.png"/>
+                <div class="layui-btn aq-btn-pre layui-btn-radius">已完成(<span id="txtFinish">-</span>)</div>
+            </div>
+        </fieldset>
+        <div class="layui-container" style="padding:0px; margin: 0px;">
+            <div class="layui-row" style="width: 100%;text-align: center;">
+            <div class="layui-col-xs6" >
+            <div class="Allmb_table">
+            <form class="layui-form" action="">
+                <table class="layui-table" lay-even="">
+                    <colgroup>
+			            <col width="150">
+                        <col width="200">
+                        <col width="50">
+                        <col width="50">
+			        </colgroup>
+                    <thead>
+                        <tr>
+                            <th>指标</th>
+                            <th>详情</th>
+                            <th>数量</th>
+                            <th>占比</th>
+			            </tr> 
+                    </thead>
+                    <tbody id="optionList">
+                            <tr>
+                            <td rowspan="5" style="position: static;!important;">
+                                现场有无新版标识
+                            </td>
+                            <td align="left">
+                                合计
+                            </td>
+                            <td>
+                                100
+                            </td>
+                            <td>
+                                100%
+                            </td>
+                        </tr>
+                        <tr>
+                            <td align="left">
+                                门贴和收银贴均有
+                            </td>
+                            <td>
+                                50
+                            </td>
+                            <td>
+                                50%
+                            </td>
+                        </tr>
+                        <tr>
+                            <td align="left">
+                                有门贴无收银贴
+                            </td>
+                            <td>
+                                20
+                            </td>
+                            <td>
+                                20%
+                            </td>
+                        </tr>
+                        <tr>
+                            <td align="left">
+                                有收银贴无门贴
+                            </td>
+                            <td>
+                                15
+                            </td>
+                            <td>
+                                15%
+                            </td>
+                        </tr>
+                        <tr>
+                            <td align="left">
+                                门贴和收银贴均无
+                            </td>
+                            <td>
+                                15
+                            </td>
+                            <td>
+                                15%
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </form>
+                </div>
+            </div>
+            <div class="layui-col-xs6">
+                <div style="height:300px; width: 100%;text-align: center;">
+                    <div style="height:260px; width: 100%; text-align: center;" id="scoreDiagram"></div>
+                </div>
+            </div>
+            </div>
+        </div>    
+
+        <blockquote class="layui-elem-quote layui-quote-nm">
+            <p>下属机构情况：我们为您检索到 <span id="txtRecordNumber">-</span> 条记录</p>
+        </blockquote>
+    	<div class="Allmb_table">
+            <form class="layui-form" action="">
+    		  <table class="layui-table" lay-even="">
+			  <thead id="columnlist">
+			    <tr>
+                  <th rowspan="3">编号</th>
+                  <th rowspan="3">机构名称</th>
+                  <th colspan="10" align="left">现场有无新版标识</th>
+                  <th rowspan="3"></th>
+			    </tr> 
+                <tr>
+                  <th colspan="2">合计</th>
+                  <th colspan="2">门贴和收银贴均有</th>
+                  <th colspan="2">有门贴无收银贴</th>
+                  <th colspan="2">有收银贴无门贴</th>
+                  <th colspan="2">门贴和收银贴均无</th>
+			    </tr>
+                <tr>
+                  <th>数量</th>
+                  <th>占比</th>
+                  <th>数量</th>
+                  <th>占比</th>
+                  <th>数量</th>
+                  <th>占比</th>
+                  <th>数量</th>
+                  <th>占比</th>
+                  <th>数量</th>
+                  <th>占比</th>
+			    </tr>
+			  </thead>
+			  <tbody id="datalist">
+                <tr>
+                  <td colspan="9" class="No_Search">暂无数据</td>
+			    </tr>
+			  </tbody>
+			</table>
+            <div id="pagecontrol"></div>
+            </form>
+            
+    	</div>
+        <div class="Txtright">
+            <input type="hidden" value="" id="hfCurrentClientID" />
+		</div> 
+   	</div>
+</div>
+</body>
+</html>

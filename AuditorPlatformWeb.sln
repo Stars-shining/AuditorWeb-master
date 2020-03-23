@@ -1,0 +1,133 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28803.452
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "AuditorPlatformWeb", "AuditorPlatformWeb", "{52AB2965-B7DB-4064-92EE-1043C5BEB893}"
+	ProjectSection(WebsiteProperties) = preProject
+		SccProjectName = ""$/渠道核查管理平台/Code/Web/AuditorPlatformWeb", RRAAAAAA"
+		SccAuxPath = ""
+		SccLocalPath = "."
+		SccProvider = "MSSCCI:Microsoft Visual SourceSafe"
+		TargetFrameworkMoniker = ".NETFramework,Version%3Dv4.0"
+		ProjectReferences = "{7E709E3F-2D63-4020-9C80-9CAFAC43A30B}|APLibrary.dll;{9D4DB9D9-7631-456A-8D9A-A0F025F27CA2}|QRCodeLib.dll;"
+		Debug.AspNetCompiler.VirtualPath = "/AuditorPlatformWeb"
+		Debug.AspNetCompiler.PhysicalPath = "AuditorPlatformWeb\"
+		Debug.AspNetCompiler.TargetPath = "PrecompiledWeb\AuditorPlatformWeb\"
+		Debug.AspNetCompiler.Updateable = "true"
+		Debug.AspNetCompiler.ForceOverwrite = "true"
+		Debug.AspNetCompiler.FixedNames = "false"
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.VirtualPath = "/AuditorPlatformWeb"
+		Release.AspNetCompiler.PhysicalPath = "AuditorPlatformWeb\"
+		Release.AspNetCompiler.TargetPath = "PrecompiledWeb\AuditorPlatformWeb\"
+		Release.AspNetCompiler.Updateable = "true"
+		Release.AspNetCompiler.ForceOverwrite = "true"
+		Release.AspNetCompiler.FixedNames = "false"
+		Release.AspNetCompiler.Debug = "False"
+		VWDPort = "11111"
+		VWDDynamicPort = "false"
+		DefaultWebSiteLanguage = "Visual C#"
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APLibrary", "APLibrary\APLibrary.csproj", "{7E709E3F-2D63-4020-9C80-9CAFAC43A30B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QRCodeLib", "QRCodeLib\QRCodeLib.csproj", "{9D4DB9D9-7631-456A-8D9A-A0F025F27CA2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CopyFiles", "CopyFiles\CopyFiles.csproj", "{A390D02C-2579-47B1-9403-3361D4C99897}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReadImageFromICTR", "ReadImageFromICTR\ReadImageFromICTR.csproj", "{E7320794-7B65-403F-B355-CC43CAF845F9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|Mixed Platforms = Debug|Mixed Platforms
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|Mixed Platforms = Release|Mixed Platforms
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{52AB2965-B7DB-4064-92EE-1043C5BEB893}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{52AB2965-B7DB-4064-92EE-1043C5BEB893}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{52AB2965-B7DB-4064-92EE-1043C5BEB893}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{52AB2965-B7DB-4064-92EE-1043C5BEB893}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{52AB2965-B7DB-4064-92EE-1043C5BEB893}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{52AB2965-B7DB-4064-92EE-1043C5BEB893}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{52AB2965-B7DB-4064-92EE-1043C5BEB893}.Release|Any CPU.Build.0 = Debug|Any CPU
+		{52AB2965-B7DB-4064-92EE-1043C5BEB893}.Release|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{52AB2965-B7DB-4064-92EE-1043C5BEB893}.Release|Mixed Platforms.Build.0 = Debug|Any CPU
+		{52AB2965-B7DB-4064-92EE-1043C5BEB893}.Release|x86.ActiveCfg = Debug|Any CPU
+		{7E709E3F-2D63-4020-9C80-9CAFAC43A30B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E709E3F-2D63-4020-9C80-9CAFAC43A30B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E709E3F-2D63-4020-9C80-9CAFAC43A30B}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{7E709E3F-2D63-4020-9C80-9CAFAC43A30B}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{7E709E3F-2D63-4020-9C80-9CAFAC43A30B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7E709E3F-2D63-4020-9C80-9CAFAC43A30B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E709E3F-2D63-4020-9C80-9CAFAC43A30B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E709E3F-2D63-4020-9C80-9CAFAC43A30B}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{7E709E3F-2D63-4020-9C80-9CAFAC43A30B}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{7E709E3F-2D63-4020-9C80-9CAFAC43A30B}.Release|x86.ActiveCfg = Release|Any CPU
+		{9D4DB9D9-7631-456A-8D9A-A0F025F27CA2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9D4DB9D9-7631-456A-8D9A-A0F025F27CA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9D4DB9D9-7631-456A-8D9A-A0F025F27CA2}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{9D4DB9D9-7631-456A-8D9A-A0F025F27CA2}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{9D4DB9D9-7631-456A-8D9A-A0F025F27CA2}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9D4DB9D9-7631-456A-8D9A-A0F025F27CA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9D4DB9D9-7631-456A-8D9A-A0F025F27CA2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9D4DB9D9-7631-456A-8D9A-A0F025F27CA2}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{9D4DB9D9-7631-456A-8D9A-A0F025F27CA2}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{9D4DB9D9-7631-456A-8D9A-A0F025F27CA2}.Release|x86.ActiveCfg = Release|Any CPU
+		{A390D02C-2579-47B1-9403-3361D4C99897}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{A390D02C-2579-47B1-9403-3361D4C99897}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
+		{A390D02C-2579-47B1-9403-3361D4C99897}.Debug|Mixed Platforms.Build.0 = Debug|x86
+		{A390D02C-2579-47B1-9403-3361D4C99897}.Debug|x86.ActiveCfg = Debug|x86
+		{A390D02C-2579-47B1-9403-3361D4C99897}.Debug|x86.Build.0 = Debug|x86
+		{A390D02C-2579-47B1-9403-3361D4C99897}.Release|Any CPU.ActiveCfg = Release|x86
+		{A390D02C-2579-47B1-9403-3361D4C99897}.Release|Mixed Platforms.ActiveCfg = Release|x86
+		{A390D02C-2579-47B1-9403-3361D4C99897}.Release|Mixed Platforms.Build.0 = Release|x86
+		{A390D02C-2579-47B1-9403-3361D4C99897}.Release|x86.ActiveCfg = Release|x86
+		{A390D02C-2579-47B1-9403-3361D4C99897}.Release|x86.Build.0 = Release|x86
+		{E7320794-7B65-403F-B355-CC43CAF845F9}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{E7320794-7B65-403F-B355-CC43CAF845F9}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
+		{E7320794-7B65-403F-B355-CC43CAF845F9}.Debug|Mixed Platforms.Build.0 = Debug|x86
+		{E7320794-7B65-403F-B355-CC43CAF845F9}.Debug|x86.ActiveCfg = Debug|x86
+		{E7320794-7B65-403F-B355-CC43CAF845F9}.Debug|x86.Build.0 = Debug|x86
+		{E7320794-7B65-403F-B355-CC43CAF845F9}.Release|Any CPU.ActiveCfg = Release|x86
+		{E7320794-7B65-403F-B355-CC43CAF845F9}.Release|Mixed Platforms.ActiveCfg = Release|x86
+		{E7320794-7B65-403F-B355-CC43CAF845F9}.Release|Mixed Platforms.Build.0 = Release|x86
+		{E7320794-7B65-403F-B355-CC43CAF845F9}.Release|x86.ActiveCfg = Release|x86
+		{E7320794-7B65-403F-B355-CC43CAF845F9}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {832CAD34-4A42-4402-AE84-C0C7550F6937}
+	EndGlobalSection
+	GlobalSection(SourceCodeControl) = preSolution
+		SccNumberOfProjects = 5
+		SccProjectUniqueName0 = APLibrary\\APLibrary.csproj
+		SccProjectName0 = \u0022$/渠道核查管理平台/Code/Web/APLibrary\u0022,\u0020SRAAAAAA
+		SccLocalPath0 = APLibrary
+		SccProvider0 = MSSCCI:Microsoft\u0020Visual\u0020SourceSafe
+		SccProjectUniqueName1 = QRCodeLib\\QRCodeLib.csproj
+		SccProjectName1 = \u0022$/渠道核查管理平台/Code/Web/QRCodeLib\u0022,\u0020TRAAAAAA
+		SccLocalPath1 = QRCodeLib
+		SccProvider1 = MSSCCI:Microsoft\u0020Visual\u0020SourceSafe
+		SccProjectUniqueName2 = CopyFiles\\CopyFiles.csproj
+		SccProjectName2 = \u0022$/渠道核查管理平台/Code/Web/CopyFiles\u0022,\u0020URAAAAAA
+		SccLocalPath2 = CopyFiles
+		SccProvider2 = MSSCCI:Microsoft\u0020Visual\u0020SourceSafe
+		SccProjectUniqueName3 = ReadImageFromICTR\\ReadImageFromICTR.csproj
+		SccProjectName3 = \u0022$/渠道核查管理平台/Code/Web/ReadImageFromICTR\u0022,\u0020VYFAAAAA
+		SccLocalPath3 = ReadImageFromICTR
+		SccProvider3 = MSSCCI:Microsoft\u0020Visual\u0020SourceSafe
+		SccWebProject4 = true
+		SccProjectUniqueName4 = AuditorPlatformWeb
+		SccProjectName4 = \u0022$/渠道核查管理平台/Code/Web/AuditorPlatformWeb\u0022,\u0020RRAAAAAA
+		SccLocalPath4 = D:\\Workspace\\AuditorWeb\\AuditorPlatformWeb
+		SccProvider4 = MSSCCI:Microsoft\u0020Visual\u0020SourceSafe
+		SccProjectEnlistmentChoice4 = 2
+	EndGlobalSection
+EndGlobal

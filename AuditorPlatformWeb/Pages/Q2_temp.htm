@@ -1,0 +1,454 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>是非题内容页</title>
+
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">  
+    <link rel="stylesheet" href="css/layui.css"  media="all">
+    <link rel="stylesheet" href="css/common.css"  media="all">
+    <link rel="stylesheet" href="css/paperInfor.css"  media="all">
+
+    <script type="text/javascript" src="js/jquery_2-1-0_min.js"  charset="utf-8"></script>
+    <script src="js/Common.js" type="text/javascript"></script>
+    <script src="js/layui.js" type="text/javascript" charset="utf-8"></script>
+    <script type="text/javascript">
+
+    //弹出窗口表单样式
+    layui.use(['form'], function () {
+        var form = layui.form();
+    });
+
+    LoadUpload();
+
+    $(function () {
+
+        $.ajaxSettings.async = false;
+
+        LoadCountType();
+
+        LoadQuestion();
+
+        LoadOption();
+
+        $("#btnSave").click(function () {
+            //DoSave();
+            DoSaveOptions();
+        });
+
+        $.ajaxSettings.async = true;
+    });
+
+    function LoadUpload() {
+        layui.use('upload', function () {
+            layui.upload({
+                url: '../Logic/Questionnaire.ashx?type=9'
+            , method: 'post'                //上传接口的http类型
+            , success: function (res, input) {
+                alert(res);
+            }
+            });
+        });
+    }
+
+    function LoadQuestion() {
+        var id = getUrlParam("id");
+        var qid = getUrlParam("qid");
+        $("#hfQID").val(qid);
+        if (id == "" || id == null) {
+            return;
+        }
+        $("#hfID").val(id);
+        var date = new Date();
+        var url = '../Logic/Questionnaire.ashx';
+        $.getJSON(url, { type: "6", date: date, id: id }, function (data) {
+            var pdo = data;
+            $("#txtTitle").text(pdo.Title);
+            $("#txtCode").val(pdo.Code);
+            $("#txtParentCode").val(pdo.ParentCode);
+            $("#txtScore").val(pdo.TotalScore);
+            $("#txtDescription").val(pdo.Description);
+            $("#ddlCountType").val(pdo.CountType);
+            
+        });
+    }
+
+    function LoadOption() {
+        
+    }
+
+    function LoadCountType() {
+        var key = "CountType";
+        var date = new Date();
+        var url = '../Logic/BusinessConfiguration.ashx';
+        $.getJSON(url, { type: "1", date: date, name: key }, function (data) {
+            $.each(data, function (i, item) {
+                $("#ddlCountType").append("<option value='" + item.ID + "'>" + item.Name + "</option>");
+            });
+        });
+    }
+
+    function DoValidate() {
+        var code = $("#txtCode").val();
+        var parentCode = $("#txtParentCode").val();
+        var score = $("#txtScore").val();
+        var countType = $("#ddlCountType").val();
+        var title = $("#txtTitle").val();
+
+        var msgs = [];
+        if (code == "") {
+            msgs.push("请输入题目的<b>题号</b>.");
+        }
+        if (parentCode == "") {
+            msgs.push("请输入题目的<b>父题号</b>.");
+        }
+
+        var scoreNum = parseInt(score);
+        if (score == "" || scoreNum < 0) {
+            msgs.push("请输入题目的<b>分值</b>.");
+        }
+        if (countType == "") {
+            msgs.push("请输入题目的<b>计分方式</b>.");
+        }
+        if (title == "") {
+            msgs.push("请输入题目的<b>正文</b>.");
+        }
+
+        if (msgs.length > 0) {
+            var message = "";
+            $.each(msgs, function (n, value) {
+                message += ((n + 1) + "." + value);
+                message += "<br/>";
+            });
+            layer.alert(message);
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+
+    function DoSave() {
+        if (DoValidate() == false) {
+            return false;
+        }
+        var code = $("#txtCode").val();
+        var parentCode = $("#txtParentCode").val();
+        var score = $("#txtScore").val();
+        var countType = $("#ddlCountType").val();
+        var title = $("#txtTitle").val();
+        var description = $("#txtDescription").val();
+
+        var bAllowImage = $("#cbxAllowImage").prop("checked");
+        var bAllowAudio = $("#cbxAllowAudio").prop("checked");
+        var bAllowVideo = $("#cbxAllowVideo").prop("checked");
+        var bMustImage = $("#cbxMustImage").prop("checked");
+        
+
+        var id = $("#hfID").val();
+        var qid = $("#hfQID").val();
+        var questionType = 1;
+        var date = new Date();
+        var url = '../Logic/Questionnaire.ashx';
+        $.ajax({
+            url: url,
+            data: {
+                Type: 7,
+                Date: date,
+                id: id,
+                qid: qid,
+                code: code,
+                parentCode: parentCode,
+                score: score,
+                countType: countType,
+                questionType: questionType,
+                title: title,
+                description: description,
+                bAllowImage: bAllowImage,
+                bAllowAudio: bAllowAudio,
+                bAllowVideo: bAllowVideo,
+                bMustImage: bMustImage
+            },
+            dataType: "json",
+            type: "POST",
+            traditional: true,
+            success: function (data) {
+                var id = data;
+                $("#hfID").val(id);
+                //DoSaveOptions();
+                //layer.alert("保存成功！", function () { $("#btnCancel").click(); });
+            },
+            error: function () {
+                layer.alert("保存失败！");
+            }
+        });
+    }
+
+    function DoSaveOptions() {
+        var qid = $("#hfID").val();
+        $("#tdOptions").find("tr").each(function (i, item) {
+            var title = $(item).find("input[name='title']").val();
+            var rediretQuestionCode = $(item).find("input[name='rediretQuestion']").val();
+            var file = $(item).find("input[name='file']")[0];
+            var bAllowInput = $(item).find("input[name='allowInput']").prop("checked");
+            var optionid = $(item).find("input[name='optionid']").val();
+            var date = new Date();
+            var url = '../Logic/Questionnaire.ashx';
+            $.ajax({
+                url: url,
+                data: {
+                    Type: 8,
+                    Date: date,
+                    id: optionid,
+                    qid: qid,
+                    title: title,
+                    bAllowInput: bAllowInput
+                },
+                dataType: "json",
+                type: "POST",
+                traditional: true,
+                success: function (data) {
+                    var id = data;
+                    $(item).find("input[name='optionid']").val(id);
+//                    var imgUrl = '../Logic/Questionnaire.ashx?type=9&id=' + id;
+//                    if ($(file).val() != "") {
+//                        layui.use('upload', function () {
+//                            layui.upload({
+//                                url: imgUrl
+//                                , elem: $(file) //指定原始元素，默认直接查找class="layui-upload-file"
+//                                , method: 'post' //上传接口的http类型
+//                                , success: function (res) {
+//                                    alert(res)
+//                                }
+//                            });
+//                        });
+//                    }
+                },
+                error: function () {
+                    layer.alert("保存失败！");
+                }
+            });
+        });
+    }
+
+    function AddNewOption(imgObj) {
+        var currentRow = $(imgObj).closest("tr");
+
+        var newRow = "";
+        newRow += "<tr>";
+        newRow += "<td>";
+        newRow += "<input type=\"radio\" name=\"LrightOne\" class=\"LrightOne\" lay-skin=\"primary\">";
+        newRow += "</td>";
+        newRow += "<td><div>";
+        newRow += "<input type=\"text\" name=\"title\" lay-verify=\"title\" autocomplete=\"off\" placeholder=\"选项正文\" class=\"layui-input\">";
+        newRow += "</div></td>";
+
+        newRow += "<td>";
+        newRow += "<input type=\"text\" name=\"rediretQuestion\" lay-verify=\"rediretQuestion\" autocomplete=\"off\" placeholder=\"跳转题号\" class=\"layui-input\">";
+        newRow += "</td>";
+
+        newRow += "<td>";
+        newRow += "<div class=\"layui-icon LimgDarkInco\" onclick=\"ShowPic(this);\">&#xe64a;</div>";
+        newRow += "</td>";
+
+        newRow += "<td>";
+        newRow += "<input type=\"checkbox\" name=\"allowInput\">";
+        newRow += "</td>";
+
+        newRow += "<td class=\"LtablePdno\">";
+        newRow += "<div class=\"LeditOpera\">";
+        newRow += "<a href=\"javascript:void(0)\" onclick=\"AddNewOption(this)\"><img src=\"images/ladd.jpg\"/></a>";
+        newRow += "</div></td>";
+
+        newRow += "<td class=\"LtablePdno\">";
+        newRow += "<div class=\"LeditOpera\">";
+        newRow += "<a href=\"javascript:void(0)\" onclick=\"RemoveOption(this)\"><img src=\"images/lreduce.jpg\"/></a>";
+        newRow += "</div>";
+        newRow += "<input type=\"hidden\" name=\"optionid\" />";
+        newRow += "</td>";
+        newRow += "</tr>";
+
+        $(currentRow).after(newRow);
+        LoadUpload();
+    }
+
+    function RemoveOption(imgObj) {
+        var currentRow = $(imgObj).closest("tr");
+        $(currentRow).remove();
+    }
+
+    function ShowPic(obj) {
+        layer.open({
+            type: 2,
+            title: '上传图片',
+            area: ['900px', '500px'],
+            fixed: false, //不固定
+            shadeClose: true,
+            content: 'UploadFile.htm'
+        });
+    }
+
+    </script>
+</head>
+<body>
+<!--这是新增确认按钮点击-->
+<div class="LaddQ" id="winQuestion">
+	<div class="LaddMain LaddMainEdit" style="padding-left:0px; padding-right: 30px;">   	
+   		<div class="layui-inline">
+	      <label class="layui-form-label"><span class="requiredFields">*</span> 题号：</label>
+	      <div class="layui-input-block">
+	       <input type="text" id="txtCode" name="title" lay-verify="title" autocomplete="off" class="layui-input">
+	      </div>
+	    </div>
+	    <div class="layui-inline">
+	      <label class="layui-form-label"><span class="requiredFields">*</span> 父题号：</label>
+	      <div class="layui-input-block">
+	       <input type="text" id="txtParentCode" name="title" lay-verify="title" autocomplete="off" class="layui-input">
+	      </div>
+	    </div>
+	    <div class="layui-inline">
+	      <label class="layui-form-label"><span class="requiredFields">*</span> 分值：</label>
+	      <div class="layui-input-block">
+	       <input type="text" id="txtScore" name="title" lay-verify="title" autocomplete="off" class="layui-input">
+	      </div>
+	    </div>
+        <form class="layui-form" action="">	
+	    <div class="layui-inline">
+	      <label class="layui-form-label"><span class="requiredFields">*</span> 计分：</label>
+	      <div class="layui-input-block">
+	      		<select class="LaddSelect" id="ddlCountType">
+		          <option value="">请选择</option>          
+		        </select>
+	      </div>
+	    </div>
+        </form>
+	    <div class="layui-form-item layui-form-text LaddMainTxt mt10">
+		    <label class="layui-form-label"><span class="requiredFields">*</span> 正文：</label>
+		    <div class="layui-input-block">
+		      <textarea id="txtTitle" class="layui-textarea" rows="2"></textarea>
+		    </div>
+		  </div>
+		  <div class="layui-form-item layui-form-text mt10">
+		    <label class="layui-form-label">选项：</label>
+		    <div class="layui-input-block LContentQm" >
+		      <table class="layui-table LContentQtable" lay-skin="nob">
+		      	<!--<colgroup>
+				      <col width="10%">
+				      <col width="36%">
+				      <col width="24%">
+				      <col width="10%">
+				      <col width="10%">
+				      <col width="10%">				      
+				      <col>
+				    </colgroup>-->
+				    <thead>
+				      <tr>
+				        <th width="30px;">正确</th>
+				        <th>文字描述</th>
+				        <th width="20%">跳题</th>
+				        <th width="30px;">图片</th>
+				        <th width="50px;">输入<i class="layui-icon" title="此处若被选中表示该选项需要答题用户自行补充选项内容。">&#xe60b;</i></th>
+				        <th width="18px;" class="LtablePdno">增</th>
+                        <th width="18px;" class="LtablePdno">减</th>
+				      </tr> 
+				    </thead>
+				    <tbody id="tdOptions">
+				      <tr>
+				        <td>
+                            <input type="radio" name="LrightOne" class="LrightOne" lay-skin="primary">
+                        </td>
+				        <td>
+                            <div>
+							    <input type="text" name="title" lay-verify="title" autocomplete="off" placeholder="选项正文" class="layui-input">
+							</div>
+				        </td>
+				        <td>
+                            <input type="text" name="rediretQuestion" lay-verify="rediretQuestion" autocomplete="off" placeholder="跳转题号" class="layui-input">
+                        </td>
+				        <td>
+                            <div class="layui-icon LimgDarkInco" onclick="ShowPic(this);">&#xe64a;</div>
+				        	<!--<input type="file" name="file" class="layui-upload-file" lay-ext="png|jpg">
+                            <input type="hidden" name="fileKey" />-->
+				        </td>
+				        <td>
+                            <input type="checkbox" name="allowInput">
+                        </td>
+				        <td  class="LtablePdno">
+				        	<div class="LeditOpera">
+				        		<a href="javascript:void(0)" onclick="AddNewOption(this)"><img src="images/ladd.jpg"/></a>				        		
+				        	</div>				        	
+				        </td>
+                        <td  class="LtablePdno">
+                       	    <div class="LeditOpera">				        		
+				        		<a href="javascript:void(0)" onclick="RemoveOption(this)"><img src="images/lreduce.jpg"/></a>
+				        	</div>
+                            <input type="hidden" name="optionid" />
+                        </td>
+				      </tr>
+                    </tbody>
+		      </table>
+		    </div>
+		  </div>
+           <div class="layui-form-item layui-form-text mt10">
+		    <label class="layui-form-label">附件：</label>
+		    <div class="layui-input-block OneWidth_Main">
+		      <ul>
+	        	<li>
+	        		<a href="javascript:void(0)"><input type="checkbox" id="cbxAllowImage" />
+	        		<label for="cbxAllowImage">允许照片</label></a>
+	        	</li>
+	          <li>
+	        		<a href="javascript:void(0)"><input type="checkbox" id="cbxAllowAudio" />
+	        		<label for="cbxAllowAudio">允许录音</label></a>
+	        	</li>
+	        	<li>
+	        		<a href="javascript:void(0)"><input type="checkbox" id="cbxAllowVideo" />
+	        		<label for="cbxAllowVideo">允许录像</label></a>
+	        	</li>
+	        	<li>
+	        		<a href="javascript:void(0)"><input type="checkbox" id="cbxMustImage" />
+	        		<label for="cbxMustImage">必须照片</label></a>
+	        	</li>
+	        </ul>
+		    </div>
+          </div>
+          <form class="layui-form" action="">	
+          <div class="layui-inline">
+              <label class="layui-form-label">关联：</label>
+              <div class="layui-input-block">
+                  <select class="LaddSelect">
+                      <option value="">默认无关联</option>		          
+                    </select>
+              </div>
+        </div>
+          <div class="layui-inline">
+              <label class="layui-form-label">关联选项：</label>
+              <div class="layui-input-block">
+                  <select class="LaddSelect">
+                      <option value="">默认无关联</option>		          
+                    </select>
+              </div>
+            </div>	
+            </form>	 
+		  <div class="layui-form-item layui-form-text mt10 LaddMainTxt">
+		    <label class="layui-form-label">备注：</label>
+		    <div class="layui-input-block">
+		      <textarea id="txtDescription" placeholder="请输入内容" class="layui-textarea" rows="2"></textarea>
+		    </div>
+		  </div>
+          <div class="Txtright mt10" id="LQuestionBtn">
+    			<button class="layui-btn lBtn_black mt10" id="btnCancel">取  消</button>
+			    <button class="layui-btn lBtn_black mt10" id="btnDelete">删 除</button>
+			    <button class="layui-btn lBtn_green mt10" id="btnSave">保  存</button>
+                <input type="hidden" id="hfID" />
+                <input type="hidden" id="hfQID" />
+			</div>
+	</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,800 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>是非题内容页</title>
+
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">  
+    <link rel="stylesheet" href="css/layui.css"  media="all">
+    <link rel="stylesheet" href="css/common.css"  media="all">
+    <link rel="stylesheet" href="css/paperInfor.css"  media="all">
+
+    <script type="text/javascript" src="js/jquery_2-1-0_min.js"  charset="utf-8"></script>
+    <script src="js/Common.js" type="text/javascript"></script>
+    <script src="js/layui.js" type="text/javascript" charset="utf-8"></script>
+
+    <script src="js/ajaxfileupload.js" type="text/javascript"></script>
+
+    <script type="text/javascript">
+    var index = parent.layer.getFrameIndex(window.name);
+    //弹出窗口表单样式
+    layui.use(['form'], function () {
+        var form = layui.form();
+    });
+
+    $(function () {
+
+        $.ajaxSettings.async = false;
+
+        LoadCountType();
+
+        LoadAttachmentCheckBox();
+
+        LoadLinkedQuestions();
+
+        LoadQuestion();
+
+        $("#btnSave").click(function () {
+            DoSave();
+        });
+        $("#btnCancel").click(function () {
+            parent.layer.close(index);
+        });
+
+        $.ajaxSettings.async = true;
+    });
+
+    function LoadAttachmentCheckBox() {
+        $("#cbxAllowImage").change(function () {
+            $("#cbxMustImage").prop("checked", false);
+            $("#cbxMustImage").attr("disabled", $(this).prop("checked") == false);
+        });
+        $("#cbxAllowAudio").change(function () {
+            $("#cbxMustAudio").prop("checked", false);
+            $("#cbxMustAudio").attr("disabled", $(this).prop("checked") == false);
+        });
+        $("#cbxAllowVideo").change(function () {
+            $("#cbxMustVideo").prop("checked", false);
+            $("#cbxMustVideo").attr("disabled", $(this).prop("checked") == false);
+        });
+    }
+
+//    function LoadUpload() {
+//        layui.use('upload', function () {
+//            layui.upload({
+//                url: '../Logic/Questionnaire.ashx?type=9'
+//            , method: 'post'                //上传接口的http类型
+//            , success: function (res, input) {
+//                alert(res);
+//            }
+//            });
+//        });
+    //    }
+
+    function LoadLinkedQuestions() {
+        var id = getUrlParam("id");
+        var qid = getUrlParam("qid");
+        var date = new Date();
+        var url = '../Logic/Questionnaire.ashx';
+        $.getJSON(url, { type: "10", date: date, id: id, qid: qid }, function (data) {
+            var questions = data;
+            $("#ddlLinkedQuestion").empty();
+            $("#ddlLinkedQuestion").append("<option value='0'>默认无关联</option>");
+            $.each(questions, function (i, item) {
+                $("#ddlLinkedQuestion").append("<option value='" + item.ID + "'>" + item.Title + "</option>");
+            });
+        });
+        layui.use(['form'], function () {
+            var form = layui.form();
+            form.on('select(ddlLinkedQuestion)', function (data) {
+                var linkedQuestionID = data.value;
+                LoadLinkedOptions(linkedQuestionID);
+            });
+        });
+    }
+
+    function LoadLinkedOptions(qid) {
+        var date = new Date();
+        var url = '../Logic/Questionnaire.ashx';
+        $.getJSON(url, { type: "11", date: date, qid: qid }, function (data) {
+            var options = data;
+            $("#ddlLinkedOption").empty();
+            $("#ddlLinkedOption").append("<option value='0'>默认无关联</option>");
+            $.each(options, function (i, item) {
+                $("#ddlLinkedOption").append("<option value='" + item.ID + "'>" + item.Title + "</option>");
+            });
+            layui.use(['form'], function () {
+                var form = layui.form();
+                form.render('select'); 
+            });
+        });
+    }
+
+    function LoadQuestion() {
+        var id = getUrlParam("id");
+        var qid = getUrlParam("qid");
+        $("#hfQID").val(qid);
+        if (id == "" || id == null) {
+            return;
+        }
+        $("#hfID").val(id);
+        var date = new Date();
+        var url = '../Logic/Questionnaire.ashx';
+        $.getJSON(url, { type: "6", date: date, id: id }, function (data) {
+            var pdo = data.Question;
+            $("#txtTitle").text(pdo.Title);
+            $("#txtCode").val(pdo.Code);
+            $("#txtParentCode").val(pdo.ParentCode);
+            $("#txtScore").val(pdo.TotalScore);
+            $("#txtDescription").val(pdo.Description);
+            $("#ddlCountType").val(pdo.CountType);
+            $("#ddlLinkedQuestion").val(pdo.LinkQuestionID);
+            LoadLinkedOptions(pdo.LinkQuestionID);
+            $("#ddlLinkedOption").val(pdo.LinkOptionID);
+
+            $("#cbxAllowImage").prop("checked", pdo.BAllowImage);
+            $("#cbxMustImage").attr("disabled", $("#cbxAllowImage").prop("checked") == false);
+            $("#cbxMustImage").prop("checked", pdo.BMustImage);
+
+            $("#cbxAllowAudio").prop("checked", pdo.BAllowAudio);
+            $("#cbxMustAudio").attr("disabled", $("#cbxAllowAudio").prop("checked") == false);
+            $("#cbxMustAudio").prop("checked", pdo.BMustAudio);
+
+            $("#cbxAllowVideo").prop("checked", pdo.BAllowVideo);
+            $("#cbxMustVideo").attr("disabled", $("#cbxAllowVideo").prop("checked") == false);
+            $("#cbxMustVideo").prop("checked", pdo.BMustVideo);
+
+            $("#cbxHidden").prop("checked", pdo.BHidden);
+
+            var options = data.Options;
+            if (options.length > 0) {
+                $("#tdOptions").empty();
+                $.each(options, function (i, item) {
+                    LoadOption(i ,item);
+                });
+            }
+        });
+    }
+
+    function LoadOption(i, optionItem) {
+        var bIsCorrentOption = optionItem.bCorrectOption;
+        var title = optionItem.Title;
+        var jumpQuestionCode = optionItem.JumpQuestionCode;
+        var showQuestionCode = optionItem.ShowQuestionCode;
+        var imageID = optionItem.OptionImageID;
+        var bAllowInput = optionItem.bAllowText;
+        var optionScore = optionItem.Score;
+        var id = optionItem.ID;
+        var newRow = "";
+        newRow += "<tr>";
+        newRow += "<td>";
+        if (bIsCorrentOption == true) {
+            newRow += "<input type=\"checkbox\" name=\"LrightOne\" class=\"LrightOne\" lay-skin=\"primary\" checked=\"checked\" />";
+        }
+        else {
+            newRow += "<input type=\"checkbox\" name=\"LrightOne\" class=\"LrightOne\" lay-skin=\"primary\"/>";
+        }
+        newRow += "<input type=\"hidden\" name=\"hfOptionID\" value=\"" + id + "\"/>";
+        newRow += "</td>";
+        newRow += "<td><div>";
+        newRow += "<input type=\"text\" name=\"title\" lay-verify=\"title\" autocomplete=\"off\" placeholder=\"选项正文\" class=\"layui-input\" value=\"" + title + "\" />";
+        newRow += "</div></td>";
+        newRow += "<td>";
+        newRow += "<input type=\"text\" name=\"rediretQuestion\" lay-verify=\"rediretQuestion\" autocomplete=\"off\" placeholder=\"隐藏题号\" class=\"layui-input\" value=\"" + jumpQuestionCode + "\" />";
+        newRow += "</td>";
+        newRow += "<td>";
+        newRow += "<input type=\"text\" name=\"showQuestion\" lay-verify=\"showQuestion\" autocomplete=\"off\" placeholder=\"显示题号\" class=\"layui-input\" value=\"" + showQuestionCode + "\" />";
+        newRow += "</td>";
+        newRow += "<td>";
+        newRow += "<input type=\"text\" name=\"optionScore\" lay-verify=\"optionScore\" autocomplete=\"off\" placeholder=\"\" class=\"layui-input\" value=\"" + optionScore + "\" />";
+        newRow += "</td>";
+
+        newRow += "<td>";
+        if (imageID != "") {
+            newRow += "<div class=\"layui-icon LimgUpInco\" onclick=\"LoadPic('" + imageID + "')\">";
+            newRow += "<input type=\"hidden\" name=\"fileKey\" value=\"" + imageID + "\"/>";
+            newRow += "&#xe64a";
+            newRow += "</div>";
+        }
+        else {
+            newRow += "<div class=\"layui-icon LimgDarkInco\">";
+            newRow += "<input type=\"file\" name=\"fileupload\" class=\"fileupload\" onchange=\"AjaxFileUpload(this);\" accept=\"image/*\" />";
+            newRow += "<input type=\"hidden\" name=\"fileKey\" />";
+            newRow += "&#xe64a";
+            newRow += "</div>";
+        }
+        newRow += "</td>";
+
+        newRow += "<td>";
+        if (bAllowInput == true) {
+            newRow += "<input type=\"checkbox\" name=\"allowInput\" class=\"imgCheckbox\" checked=\"checked\" />";
+        }
+        else {
+            newRow += "<input type=\"checkbox\" name=\"allowInput\" class=\"imgCheckbox\" />";
+        }
+        newRow += "</td>";
+
+        newRow += "<td class=\"LtablePdno\">";
+        newRow += "<div class=\"LeditOpera\">";
+        newRow += "<a href=\"javascript:void(0)\" onclick=\"AddNewOption(this)\"><img src=\"images/ladd.jpg\"></a>";
+        newRow += "</div></td>";
+
+        newRow += "<td class=\"LtablePdno\">";
+        newRow += "<div class=\"LeditOpera\">";
+        if (i > 0) {
+            newRow += "<a href=\"javascript:void(0)\" onclick=\"RemoveOption(this)\"><img src=\"images/lreduce.jpg\"></a>";    
+        }
+        newRow += "</div>";
+        newRow += "</td>";
+        newRow += "</tr>";
+        $("#tdOptions").append(newRow);
+    }
+
+    function LoadCountType() {
+        var key = "CountType";
+        var date = new Date();
+        var url = '../Logic/BusinessConfiguration.ashx';
+        $.getJSON(url, { type: "1", date: date, name: key }, function (data) {
+            $.each(data, function (i, item) {
+                $("#ddlCountType").append("<option value='" + item.ID + "'>" + item.Name + "</option>");
+            });
+        });
+    }
+
+    function DoValidate() {
+        var code = $("#txtCode").val();
+        var parentCode = $("#txtParentCode").val();
+        var score = $("#txtScore").val();
+        var countType = $("#ddlCountType").val();
+        var title = $("#txtTitle").val();
+
+        var msgs = [];
+        if (code == "") {
+            msgs.push("请输入题目的<b>题号</b>.");
+        }
+        if (parentCode == "") {
+            msgs.push("请输入题目的<b>父题号</b>.");
+        }
+
+        var scoreNum = parseInt(score);
+        if (score == "" || scoreNum < 0) {
+            msgs.push("请输入题目的<b>分值</b>.");
+        }
+        if (countType == "") {
+            msgs.push("请输入题目的<b>计分方式</b>.");
+        }
+        if (title == "") {
+            msgs.push("请输入题目的<b>正文</b>.");
+        }
+
+        var linkQuestionID = $("#ddlLinkedQuestion").val();
+        var linkOptionID = $("#ddlLinkedOption").val();
+        if (linkQuestionID != "" && linkQuestionID != "0" && linkOptionID == "0") {
+            msgs.push("您选择了关联题目但是却没有关联到选项，请务必选择关联选项.");
+        }
+
+        var answer = 0;
+        var optionCount = 0;
+        $("#tdOptions").find("tr").each(function (i, item) {
+            var title = $(item).find("input[name='title']").val();
+            var bIsAnswer = $(item).find("input[name='LrightOne']").prop("checked");
+            var rediretQuestionCode = $(item).find("input[name='rediretQuestion']").val();
+            var bAllowInput = $(item).find("input[name='allowInput']").prop("checked");
+            var imgID = $(item).find("input[name='fileKey']").val();
+
+            if (title == "" && imgID == "") {
+                var optionMsg = "第" + (i + 1) + "个选项，请输入<b>正文</b>或者选择一个图片作为题目的正文。";
+                msgs.push(optionMsg);
+            }
+            if (bIsAnswer == true) {
+                answer++;
+            }
+            optionCount++;
+        });
+        if (optionCount < 4) {
+            msgs.push("请为该多选题创建四个及以上<b>选项</b>");
+        }
+//        if (answer < 2) {
+//            msgs.push("请为该多选题指定两个及以上<b>正确选项</b>");
+//        }
+
+        if (msgs.length > 0) {
+            var message = "";
+            $.each(msgs, function (n, value) {
+                message += ((n + 1) + "." + value);
+                message += "<br/>";
+            });
+            layer.alert(message);
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+
+    function DoSave() {
+        if (DoValidate() == false) {
+            return false;
+        }
+        var code = $("#txtCode").val();
+        var parentCode = $("#txtParentCode").val();
+        var score = $("#txtScore").val();
+        var countType = $("#ddlCountType").val();
+        var title = $("#txtTitle").val();
+        var description = $("#txtDescription").val();
+        var linkQuestionID = $("#ddlLinkedQuestion").val();
+        var linkOptionID = $("#ddlLinkedOption").val();
+
+        var bAllowImage = $("#cbxAllowImage").prop("checked");
+        var bAllowAudio = $("#cbxAllowAudio").prop("checked");
+        var bAllowVideo = $("#cbxAllowVideo").prop("checked");
+        var bMustImage = $("#cbxMustImage").prop("checked");
+        var bMustAudio = $("#cbxMustAudio").prop("checked");
+        var bMustVideo = $("#cbxMustVideo").prop("checked");
+
+        var bHidden = $("#cbxHidden").prop("checked");
+
+        var id = $("#hfID").val();
+        var qid = $("#hfQID").val();
+        var questionType = 3;
+        var date = new Date();
+        var url = '../Logic/Questionnaire.ashx';
+        $.ajax({
+            url: url,
+            data: {
+                Type: 7,
+                Date: date,
+                id: id,
+                qid: qid,
+                code: code,
+                parentCode: parentCode,
+                score: score,
+                countType: countType,
+                questionType: questionType,
+                title: title,
+                linkQuestionID: linkQuestionID,
+                linkOptionID: linkOptionID,
+                description: description,
+                bAllowImage: bAllowImage,
+                bAllowAudio: bAllowAudio,
+                bAllowVideo: bAllowVideo,
+                bMustImage: bMustImage,
+                bMustAudio: bMustAudio,
+                bMustVideo: bMustVideo,
+                bHidden: bHidden
+            },
+            dataType: "json",
+            type: "POST",
+            traditional: true,
+            success: function (data) {
+                var id = data;
+                $("#hfID").val(id);
+                $.ajaxSettings.async = false;
+                DoSaveOptions();
+                $.ajaxSettings.async = true;
+                layer.alert("保存成功！", function (index) {
+                    layer.close(index);
+                    parent.LoadData();
+                    $("#btnCancel").click(); 
+                });
+            },
+            error: function () {
+                layer.alert("保存失败！");
+            }
+        });
+    }
+
+    function DoSaveOptions() {
+        var qid = $("#hfID").val();
+//        var date = new Date();
+//        var url = '../Logic/Questionnaire.ashx';
+//        $.ajax({
+//            url: url,
+//            data: {
+//                Type: 9,
+//                Date: date,
+//                qid: qid
+//            },
+//            dataType: "json",
+//            type: "POST",
+//            traditional: true,
+//            success: function (data) {
+//                
+//            },
+//            error: function () {
+//            }
+//        });
+        var allids = [];
+        $("#tdOptions").find("tr").each(function (i, item) {
+            var title = $(item).find("input[name='title']").val();
+            var id = $(item).find("input[name='hfOptionID']").val();
+            var bIsAnswer = $(item).find("input[name='LrightOne']").prop("checked");
+            var rediretQuestionCode = $(item).find("input[name='rediretQuestion']").val();
+            var showQuestionCode = $(item).find("input[name='showQuestion']").val();
+            var optionScore = $(item).find("input[name='optionScore']").val();
+            var bAllowInput = $(item).find("input[name='allowInput']").prop("checked");
+            var imgID = $(item).find("input[name='fileKey']").val();
+            var date = new Date();
+            var url = '../Logic/Questionnaire.ashx';
+            $.ajax({
+                url: url,
+                data: {
+                    Type: 8,
+                    Date: date,
+                    qid: qid,
+                    title: title,
+                    jumpQID: rediretQuestionCode,
+                    showQuestionCode: showQuestionCode,
+                    imageID: imgID,
+                    bIsAnswer:bIsAnswer,
+                    bAllowInput: bAllowInput,
+                    optionScore: optionScore,
+                    id: id
+                },
+                dataType: "json",
+                type: "POST",
+                traditional: true,
+                success: function (data) {
+                    allids.push(data);
+                },
+                error: function () {
+                    layer.alert("选项保存失败！");
+                }
+            });
+        });
+
+        var qid = $("#hfID").val();
+        var date = new Date();
+        var url = '../Logic/Questionnaire.ashx';
+        $.ajax({
+            url: url,
+            data: {
+                Type: 21,
+                Date: date,
+                qid: qid,
+                allids: allids
+            },
+            dataType: "json",
+            type: "POST",
+            traditional: true,
+            success: function (data) {
+
+            },
+            error: function () {
+            }
+        });
+    }
+
+    function AddNewOption(imgObj) {
+        var currentRow = $(imgObj).closest("tr");
+        var newRow = "";
+        newRow += "<tr>";
+        newRow += "<td>";
+        newRow += "<input type=\"checkbox\" name=\"LrightOne\" class=\"LrightOne\" lay-skin=\"primary\"/>";
+        newRow += "<input type=\"hidden\" name=\"hfOptionID\" value=\"\"/>";
+        newRow += "</td>";
+        newRow += "<td><div>";
+        newRow += "<input type=\"text\" name=\"title\" lay-verify=\"title\" autocomplete=\"off\" placeholder=\"选项正文\" class=\"layui-input\"/>";
+        newRow += "</div></td>";
+
+        newRow += "<td>";
+        newRow += "<input type=\"text\" name=\"rediretQuestion\" lay-verify=\"rediretQuestion\" autocomplete=\"off\" placeholder=\"隐藏题号\" class=\"layui-input\"/>";
+        newRow += "</td>";
+
+        newRow += "<td>";
+        newRow += "<input type=\"text\" name=\"showQuestion\" lay-verify=\"showQuestion\" autocomplete=\"off\" placeholder=\"显示题号\" class=\"layui-input\"/>";
+        newRow += "</td>";
+
+        newRow += "<td>";
+        newRow += "<input type=\"text\" name=\"optionScore\" lay-verify=\"optionScore\" autocomplete=\"off\" placeholder=\"\" class=\"layui-input\"/>";
+        newRow += "</td>";
+
+        newRow += "<td>";
+        newRow += "<div class=\"layui-icon LimgDarkInco\">";
+        newRow += "<input type=\"file\" name=\"fileupload\" class=\"fileupload\" onchange=\"AjaxFileUpload(this);\" accept=\"image/*\" />";
+        newRow += "<input type=\"hidden\" name=\"fileKey\" />";
+        newRow += "&#xe64a";
+        newRow += "</div>";
+        newRow += "</td>";
+
+        newRow += "<td>";
+        newRow += "<input type=\"checkbox\" name=\"allowInput\" class=\"imgCheckbox\"/>";
+        newRow += "</td>";
+
+        newRow += "<td class=\"LtablePdno\">";
+        newRow += "<div class=\"LeditOpera\">";
+        newRow += "<a href=\"javascript:void(0)\" onclick=\"AddNewOption(this)\"><img src=\"images/ladd.jpg\"></a>";
+        newRow += "</div></td>";
+
+        newRow += "<td class=\"LtablePdno\">";
+        newRow += "<div class=\"LeditOpera\">";
+        newRow += "<a href=\"javascript:void(0)\" onclick=\"RemoveOption(this)\"><img src=\"images/lreduce.jpg\"/></a>";
+        newRow += "</div>";
+        newRow += "</td>";
+        newRow += "</tr>";
+
+        $(currentRow).after(newRow);
+    }
+
+    function LoadPic(imgID) {
+        var date = new Date();
+        var url = '../Logic/Upload.ashx';
+        $.ajax({
+            url: url,
+            data: {
+                Type: 6,
+                Date: date,
+                id: imgID
+            },
+            dataType: "text",
+            type: "GET",
+            traditional: true,
+            success: function (data) {
+                PreViewPhoto(data, "");
+            }
+        });
+    }
+
+    function AjaxFileUpload(fileObj) {
+        $(".LoadingBg").show();
+        var parentDiv = $(fileObj).parent();
+        var fileIdInput = $(fileObj).next();
+        $.ajaxFileUpload({
+            url: '../Logic/Upload.ashx?type=1&TypeID=1',
+            secureuri: false,
+            fileElement: $(fileObj),
+            dataType: 'TEXT',
+            success: function (data, status) {
+                $(".LoadingBg").hide();
+                var result = "";
+                var xmlDoc;
+                try {
+                    xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
+                    xmlDoc.async = "false";
+                    xmlDoc.loadXML(data);
+                }
+                catch (e) {
+                    try {
+                        parser = new DOMParser();
+                        xmlDoc = parser.parseFromString(data, "text/xml");
+                    }
+                    catch (e) {
+                        alert(e.message);
+                        return;
+                    }
+                }
+                result = xmlDoc.getElementsByTagName("pre")[0].childNodes[0].nodeValue;
+                var docid = parseInt(result);
+                if (docid > 0) {
+                    $(parentDiv).removeClass("LimgDarkInco");
+                    $(parentDiv).addClass("LimgUpInco");
+                    $(fileIdInput).val(docid);
+                    $(fileupload).remove();
+                    $(parentDiv).click(function () {
+                        LoadPic(docid);
+                    });
+                }
+                else {
+                    layer.alert("上传失败");
+                    alert(data);
+                }
+            },
+            error: function (data, status, e) {
+                $(".LoadingBg").hide();
+                layer.alert("上传出错，错误信息如下：\r\n" + e.toString());
+            }
+        });
+    }
+
+    function RemoveOption(imgObj) {
+        var currentRow = $(imgObj).closest("tr");
+        $(currentRow).remove();
+    }
+
+    function ShowPic(obj) {
+        layer.open({
+            type: 2,
+            title: '上传图片',
+            area: ['900px', '500px'],
+            fixed: false, //不固定
+            shadeClose: true,
+            content: 'UploadFile.htm'
+        });
+    }
+
+    </script>
+</head>
+<body>
+<!--这是新增确认按钮点击-->
+<div class="LaddQ" id="winQuestion">
+	<div class="LaddMain LaddMainEdit" style="padding-left:0px; padding-right: 30px;">   	
+   		<div class="layui-inline">
+	      <label class="layui-form-label"><span class="requiredFields">*</span> 题号：</label>
+	      <div class="layui-input-block">
+	       <input type="text" id="txtCode" name="title" lay-verify="title" autocomplete="off" class="layui-input">
+	      </div>
+	    </div>
+	    <div class="layui-inline">
+	      <label class="layui-form-label"><span class="requiredFields">*</span> 父题号：</label>
+	      <div class="layui-input-block">
+	       <input type="text" id="txtParentCode" name="title" lay-verify="title" autocomplete="off" class="layui-input">
+	      </div>
+	    </div>
+	    <div class="layui-inline">
+	      <label class="layui-form-label"><span class="requiredFields">*</span> 分值：</label>
+	      <div class="layui-input-block">
+	       <input type="text" id="txtScore" name="title" lay-verify="title" autocomplete="off" class="layui-input">
+	      </div>
+	    </div>
+        <form class="layui-form" action="">	
+	    <div class="layui-inline">
+	      <label class="layui-form-label"><span class="requiredFields">*</span> 计分：</label>
+	      <div class="layui-input-block">
+	      		<select class="LaddSelect" id="ddlCountType">
+		          <option value="">请选择</option>          
+		        </select>
+	      </div>
+	    </div>
+        </form>
+	    <div class="layui-form-item layui-form-text LaddMainTxt mt10">
+		    <label class="layui-form-label"><span class="requiredFields">*</span> 正文：</label>
+		    <div class="layui-input-block">
+		      <textarea id="txtTitle" class="layui-textarea" rows="2"></textarea>
+		    </div>
+		  </div>
+		  <div class="layui-form-item layui-form-text mt10">
+		    <label class="layui-form-label">选项：</label>
+		    <div class="layui-input-block LContentQm" >
+		      <table class="layui-table LContentQtable" lay-skin="nob">
+		      	<!--<colgroup>
+				      <col width="10%">
+				      <col width="36%">
+				      <col width="24%">
+				      <col width="10%">
+				      <col width="10%">
+				      <col width="10%">				      
+				      <col>
+				    </colgroup>-->
+				    <thead>
+				      <tr>
+				        <th width="30px;">正确</th>
+				        <th>文字描述</th>
+				        <th width="12%">隐藏</th>
+                        <th width="12%">显示</th>
+                        <th width="6%">分数</th>
+				        <th width="30px;">图片</th>
+				        <th width="50px;">输入<i class="layui-icon" title="此处若被选中表示该选项需要答题用户自行补充选项内容。">&#xe60b;</i></th>
+				        <th width="18px;" class="LtablePdno">增</th>
+                        <th width="18px;" class="LtablePdno">减</th>
+				      </tr> 
+				    </thead>
+				    <tbody id="tdOptions">
+				      <tr>
+				        <td>
+                            <input type="checkbox" name="LrightOne" class="LrightOne" lay-skin="primary"/>
+                        </td>
+				        <td>
+                            <div>
+							    <input type="text" name="title" lay-verify="title" autocomplete="off" placeholder="选项正文" class="layui-input"/>
+							</div>
+				        </td>
+				         <td>
+                            <input type="text" name="rediretQuestion" lay-verify="rediretQuestion" autocomplete="off" placeholder="隐藏题号" class="layui-input"/>
+                        </td>
+                        <td>
+                            <input type="text" name="showQuestion" lay-verify="showQuestion" autocomplete="off" placeholder="显示题号" class="layui-input"/>
+                        </td>
+                        <td>
+                            <input type="text" name="optionScore" lay-verify="optionScore" autocomplete="off" placeholder="" class="layui-input"/>
+                        </td>
+				        <td>
+                            <div class="layui-icon LimgDarkInco">
+                                <input type="file" name="fileupload" class="fileupload" onchange="AjaxFileUpload(this);" accept="image/*" />
+                                <input type="hidden" name="fileKey" />
+                                &#xe64a;
+                            </div>
+				        </td>
+				        <td>
+                            <input type="checkbox" name="allowInput" class="imgCheckbox"/>
+                        </td>
+				        <td  class="LtablePdno">
+				        	<div class="LeditOpera">
+				        		<a href="javascript:void(0)" onclick="AddNewOption(this)"><img src="images/ladd.jpg"/></a>				        		
+				        	</div>				        	
+				        </td>
+                        <td  class="LtablePdno">
+                       	    <div class="LeditOpera">				        		
+				        		<a href="javascript:void(0)"><img src="images/lreduce.jpg"/></a>
+				        	</div>
+                        </td>
+				      </tr>
+                    </tbody>
+		      </table>
+		    </div>
+		  </div>
+           <div class="layui-form-item layui-form-text mt10">
+		    <label class="layui-form-label">附件：</label>
+		    <div class="layui-input-block OneWidth_Main">
+		      <ul>
+	        	<li>
+	        		<a href="javascript:void(0)"><input type="checkbox" id="cbxAllowImage" />
+	        		<label for="cbxAllowImage">允许照片</label></a>
+                    (   
+                        <a href="javascript:void(0)"><input type="checkbox" id="cbxMustImage" disabled="disabled"/>
+	        		    <label for="cbxMustImage" class="boldText">必须照片</label></a>
+                    )&nbsp;&nbsp;&nbsp;
+	        	</li>
+	          <li>
+	        		<a href="javascript:void(0)"><input type="checkbox" id="cbxAllowAudio" />
+	        		<label for="cbxAllowAudio">允许录音</label></a>
+                    (   
+                        <a href="javascript:void(0)"><input type="checkbox" id="cbxMustAudio" disabled="disabled"/>
+	        		    <label for="cbxMustAudio" class="boldText">必须录音</label></a>
+                    )&nbsp;&nbsp;&nbsp;
+	        	</li>
+	        	<li>
+	        		<a href="javascript:void(0)"><input type="checkbox" id="cbxAllowVideo" />
+	        		<label for="cbxAllowVideo">允许录像</label></a>
+                    (   
+                        <a href="javascript:void(0)"><input type="checkbox" id="cbxMustVideo" disabled="disabled"/>
+	        		    <label for="cbxMustVideo" class="boldText">必须录像</label></a>
+                    )&nbsp;&nbsp;&nbsp;
+	        	</li>
+	        </ul>
+		    </div>
+          </div>
+          <form class="layui-form" action="">	
+          <div class="layui-inline">
+              <label class="layui-form-label">关联：</label>
+              <div class="layui-input-block">
+                  <select class="LaddSelect" id="ddlLinkedQuestion" lay-filter="ddlLinkedQuestion">
+                      <option value="0">默认无关联</option>		          
+                    </select>
+              </div>
+        </div>
+          <div class="layui-inline">
+              <label class="layui-form-label">关联选项：</label>
+              <div class="layui-input-block">
+                  <select class="LaddSelect" id="ddlLinkedOption">
+                      <option value="0">默认无关联</option>		          
+                    </select>
+              </div>
+            </div>	
+            </form>	 
+            <div class="layui-form-item layui-form-text LaddMainTxt" style="padding-top:20px;">
+		    <label class="layui-form-label">隐藏：</label>
+		    <div class="layui-input-block OneWidth_Main" style="margin-top: 10px;">
+		      <a href="javascript:void(0)">
+                    <input type="checkbox" id="cbxHidden" />
+	        		<label for="cbxHidden" class="boldText">是否默认隐藏本题目</label>
+              </a>
+		    </div>
+		  </div>
+		  <div class="layui-form-item layui-form-text mt10 LaddMainTxt">
+		    <label class="layui-form-label">备注：</label>
+		    <div class="layui-input-block">
+		      <textarea id="txtDescription" placeholder="请输入内容" class="layui-textarea" rows="2"></textarea>
+		    </div>
+		  </div>
+          <div class="Txtright mt10" id="LQuestionBtn">
+    			<button class="layui-btn lBtn_black mt10" id="btnCancel">取  消</button>
+			    <button class="layui-btn lBtn_black mt10" id="btnDelete">删 除</button>
+			    <button class="layui-btn lBtn_green mt10" id="btnSave">保  存</button>
+                <input type="hidden" id="hfID" />
+                <input type="hidden" id="hfQID" />
+			</div>
+	</div>
+</div>
+
+<div class="LoadingBg" style="display:none">
+	<div class="LoadingMain">
+    	<img src="images/loading.gif" alt=""/>正在上传...
+    </div>
+</div>
+</body>
+</html>

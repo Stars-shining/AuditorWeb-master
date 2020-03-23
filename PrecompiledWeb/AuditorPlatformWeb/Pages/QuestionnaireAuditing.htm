@@ -1,0 +1,1312 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>渠道核查在线管理平台</title>
+<link rel="shortcut icon" href="favicon.ico"/>
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">  
+  <link rel="stylesheet" href="css/layui.css"  media="all">
+  <link rel="stylesheet" href="css/common.css"  media="all">
+  <script type="text/javascript" src="js/jquery_2-1-0_min.js"  charset="utf-8"></script>
+  <script src="js/jquery.base64.js" type="text/javascript"></script>
+  <script src="js/lay-new/layui.js" type="text/javascript"></script>
+  <script src="js/Common.js" type="text/javascript"></script>
+  <script src="js/ajaxfileupload.js" type="text/javascript"></script>
+
+    <script type="text/javascript" src="js/video.min.js"></script>	
+  <script src="js/videojs.hotkeys.min.js" type="text/javascript"></script>
+  <script src="js/draggabilly.pkgd.min.js" type="text/javascript"></script>
+
+  <script src="js/audio.min.js" type="text/javascript"></script>
+        
+    <link href="Viewer/viewer.min.css" rel="stylesheet" type="text/css" />
+    <script src="Viewer/viewer.min.js" type="text/javascript"></script>
+
+      <style type="text/css">
+.UploadBtn{ width:80px;position:relative;text-align:center;overflow:hidden; border:0 none;margin:0 6px; font-size:14px; color:#fff; padding:0 5px; 
+            height:38px; line-height:38px; font-family:"微软雅黑"; display:inline-block; cursor: pointer; background-color:#009688;opacity: 0.9; filter:alpha(opacity=90);border-radius:2px;}  
+.UploadBtn:hover{
+	opacity: 0.8; filter:alpha(opacity=80); color: #fff;
+}
+.fileupload{position:absolute; bottom:0;left:0;font-size:100px;height:130%;width:100%;z-index:1;opacity:0;filter:alpha(opacity=0); cursor: pointer;}
+  </style>
+
+  <script type="text/javascript" language="javascript" charset="utf-8">
+
+      layui.use('laydate', function () {
+          var laydate = layui.laydate;
+
+          //日期选择器
+          laydate.render({
+              elem: '#txtVisitDate'
+          });
+
+          //时间选择器
+          laydate.render({
+              elem: '#txtVisitBeginTime'
+              , type: 'time'
+              , format: 'HH:mm'
+          });
+          laydate.render({
+              elem: '#txtVisitEndTime'
+              , type: 'time'
+              , format: 'HH:mm'
+          });
+      });
+
+      $(function () {
+          $.ajaxSettings.async = false;
+
+          var st = getUrlParam("st");
+          $("#hfStatus").val(st);
+
+          var resultID = getUrlParam("resultID");
+          resultID = decodeBase64(resultID, 5);
+          $("#hfResultID").val(resultID);
+
+          var auditType = getUrlParam("auditType");
+          auditType = decodeBase64(auditType, 5);
+          $("#hfAuditType").val(auditType);
+
+
+          LoadAuditStatus();
+
+          LoadData();
+
+          $("#btnClose").click(function () {
+              DoClose();
+          });
+
+          $("#btnAudit").click(function () {
+              ShowAuditWindow();
+          });
+
+          $("#btnCancelAudit").click(function () {
+              layer.close(layer.index);
+          });
+
+          $("#btnSubmitAudit").click(function () {
+              DoSubmitAudit();
+          });
+
+          $("#btnAppeal").click(function () {
+              ShowAppealWindow();
+          });
+
+
+          layui.use('form', function () {
+              var form = layui.form;
+              form.on('radio(cbxApprove)', function (data) {
+                  AuditUpdateOnCheck(form);
+              });
+              form.on('radio(cbxReject)', function (data) {
+                  AuditUpdateOnCheck(form);
+              });
+          });
+          LoadCurrentProject();
+
+          InitReturnUserType();
+
+          LoadAuditHistory();
+
+          if (userType == 7) {
+              $(".UploadBtn").show();
+              LoadUpload();
+          }
+
+          layui.use('form', function () {
+              var form = layui.form;
+              form.on('checkbox(cbxOnlyDeduction)', function (data) {
+                  LoadData();
+              });
+              form.on('checkbox(cbxOnlyAppeal)', function (data) {
+                  LoadData();
+              });
+          });
+
+          if ($("#hfAuditType").val() != "5") {
+              //复审
+              $("#panelCondition").hide();
+          }
+          $.ajaxSettings.async = true;
+
+      })
+
+      function ChangeVideoLine(ddlLine) {
+          var playPath = $("#hfPlayPath").val();
+          var coverImage = $("#hfCoverImage").val();
+          var line = $(ddlLine).val();
+          playPath = playPath.substr(playPath.indexOf("..") + 2);
+          if (coverImage != "") {
+              coverImage = coverImage.substr(coverImage.indexOf("..") + 2);
+              coverImage = line + coverImage;
+          }
+          playPath = line + playPath;
+          InitVideo(playPath, coverImage);
+          videojs("my-video").ready(function () {
+              var myPlayer = this;
+              myPlayer.play();
+          });
+      }
+
+      function InitVideo(vPath, vCover) {
+          var myPlayer = videojs('my-video', {}, function () {
+              this.src(vPath);
+              if (vCover == null || vCover == "") {
+                  this.poster('images/videoCover.jpg');
+              }
+              else {
+                  this.poster(vCover);
+              }
+          });
+          videojs("my-video").ready(function () {
+              var myPlayer = this;
+          });
+      }
+
+      function InitAudio(aPath) {
+          var audio = document.getElementById("my-audio");
+          audio.src = aPath;
+          audiojs.events.ready(function () {
+              var as = audiojs.createAll();
+          });
+      }
+
+      function ShowVideoWindow() {
+          //边缘弹出
+          layer.open({
+              type: 1
+              , title: '全程录像'
+              , offset: 'lb' //具体配置参考：offset参数项
+              , content: $('#floatDiv')
+              , area: ['600px', '425px']
+              , shade: 0 //不显示遮罩
+          });
+      }
+
+      function ShowAudioWindow() {
+          //边缘弹出
+          layer.open({
+              type: 1
+              , title: '全程录音'
+              , offset: 'lb' //具体配置参考：offset参数项
+              , content: $('#floatAudio')
+              , area: ['500px', '100px']
+              , shade: 0 //不显示遮罩
+              , success: function () {
+                  audiojs.instances.audiojs0.play();
+              }
+          });
+      }
+
+      function LoadUpload() {
+          $('#fileupload').change(function () {
+              AjaxFileUpload();
+          });
+      }
+
+      function AjaxFileUpload() {
+          var resultID = $("#hfResultID").val();
+          $(".LoadingBg").show();
+          $.ajaxFileUpload({
+              url: '../Logic/Upload.ashx?type=16&typeID=3&resultID=' + resultID,
+              secureuri: false,
+              fileElementId: 'fileupload',
+              dataType: 'TEXT',
+              success: function (data, status) {
+                  $(".LoadingBg").hide();
+                  var result = "";
+                  var xmlDoc;
+                  try {
+                      xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
+                      xmlDoc.async = "false";
+                      xmlDoc.loadXML(data);
+                  }
+                  catch (e) {
+                      try {
+                          parser = new DOMParser();
+                          xmlDoc = parser.parseFromString(data, "text/xml");
+                      }
+                      catch (e) {
+                          alert(e.message);
+                          return;
+                      }
+                  }
+                  var preResult = xmlDoc.getElementsByTagName("pre")[0].childNodes[0].nodeValue;
+                  var result = preResult.substr(0, 1);
+                  var msg = "";
+                  if (preResult.length > 1) {
+                      msg = preResult.substr(1);
+                  }
+                  if (result == "1") {
+                      if (msg != "") {
+                          layer.alert("上传成功，但存在以下问题：<br/>" + msg);
+                      }
+                      else {
+                          layer.alert("上传成功");
+                      }
+                      LoadData();
+                  }
+                  else {
+                      layer.alert("文件处理过程中出错，原因如下：<br/>" + msg);
+                  }
+                  var file = $("#fileupload");
+                  file.after(file.clone().val(""));
+                  file.remove();
+                  $('#fileupload').change(function () {
+                      AjaxFileUpload();
+                  });
+              },
+              error: function (data, status, e) {
+                  $(".LoadingBg").hide();
+                  layer.alert("上传出错，错误信息如下：\r\n" + e.toString());
+                  var file = $("#fileupload")
+                  file.after(file.clone().val(""));
+                  file.remove();
+                  $('#fileupload').change(function () {
+                      AjaxFileUpload();
+                  });
+              }
+          });
+      }
+
+      function DoSaveInfo(bMsg) {
+          var resultID = $("#hfResultID").val();
+          var visitDate = $("#txtVisitDate").val();
+          var visitBeginTime = $("#txtVisitBeginTime").val();
+          var visitEndTime = $("#txtVisitEndTime").val();
+          var videoPath = $("#txtVideoPath").val();
+          var videoLength = $("#txtVideoLength").val();
+          var description = $("#txtDescription").val();
+
+          var msg = [];
+          if (visitDate == "") {
+              msg.push("请输入访问日期.");
+          }
+          if (visitBeginTime == "") {
+              msg.push("请输入访问开始时间.");
+          }
+          if (visitEndTime == "") {
+              msg.push("请输入访问结束时间.");
+          }
+
+          if (msg.length > 0) {
+              var message = "";
+              $.each(msg, function (n, value) {
+                  message += ((n + 1) + "." + value);
+                  message += "<br/>";
+              });
+              layer.alert(message);
+              return false;
+          }
+
+          var url = "../Logic/QuestionnaireAudit.ashx";
+          var date = new Date();
+          $.ajax({
+              url: url,
+              data: {
+                  type: 14,
+                  Date: date,
+                  resultID: resultID,
+                  visitDate: visitDate,
+                  visitBeginTime: visitBeginTime,
+                  visitEndTime: visitEndTime,
+                  videoPath: videoPath,
+                  videoLength: videoLength,
+                  description: description
+              },
+              dataType: "json",
+              type: "POST",
+              traditional: true,
+              success: function (data) {
+                if (data == "-1") {
+                    layer.alert("提交失败，系统检测到您正在处理的问卷不属于当前登录项目。<br/><br/><b>请重新登录后再处理<b/>", function (index) {
+                        layer.closeAll();
+                        QuitSystemInstance();
+                    });
+                }
+                else {
+                    if (bMsg == 1) {
+                        layer.alert("保存成功.", function (index) {
+                            layer.closeAll();
+                            LoadData();
+                        });
+                    }
+                }
+              },
+              error: function (e) {
+
+              }
+          });
+      }
+
+      function LoadCurrentProject() {
+          var date = new Date();
+          var url = '../Logic/Project.ashx';
+          $.ajax({
+              type: "get",
+              url: url,
+              data: { "type": "11", "date": date },
+              success: function (data) {
+                  if (data != null) {
+                      $("#hfBHasAreaUser").val(data.BHasAreaUser);
+                  }
+              }
+          });
+      }
+
+      function InitReturnUserType() {
+          var auditType = $("#hfAuditType").val();
+          if (auditType == "6") {
+              //质控督导审核
+              if (userType == 7) {
+                  $("#ddlReturnUserType").append("<option value=\"5\">退回质控督导</option>");  
+              }
+              $("#ddlReturnUserType").append("<option value=\"6\">退回质控员</option>");
+              if ($("#hfBHasAreaUser").val() == "true") {
+                  $("#ddlReturnUserType").append("<option value=\"2\">退回区控</option>");
+              }
+              $("#ddlReturnUserType").append("<option value=\"3\">退回执行督导</option>");
+              $("#ddlReturnUserType").append("<option value=\"4\">退回访问员</option>");
+          }
+          else if (auditType == "3") {
+              //质控审核
+              if ($("#hfBHasAreaUser").val() == "true") {
+                  $("#ddlReturnUserType").append("<option value=\"2\">退回区控</option>");
+              }
+              $("#ddlReturnUserType").append("<option value=\"3\">退回执行督导</option>");
+              $("#ddlReturnUserType").append("<option value=\"4\">退回访问员</option>");
+          }
+          else if (auditType == "2") {
+              //区控审核
+              $("#ddlReturnUserType").append("<option value=\"3\">退回执行督导</option>");
+              $("#ddlReturnUserType").append("<option value=\"4\">退回访问员</option>");
+          }
+          else if (auditType == "1") {
+              //执行督导审核
+              $("#ddlReturnUserType").append("<option value=\"4\">退回访问员</option>");
+          } 
+      }
+
+      function LoadAuditStatus() {
+          var typeID = $("#hfAuditType").val();
+          var resultID = $("#hfResultID").val();
+          var url = "../Logic/QuestionnaireAudit.ashx";
+          var date = new Date();
+          $.ajax({
+              url: url,
+              data: {
+                  type: 3,
+                  Date: date,
+                  resultID: resultID,
+                  typeID: typeID
+              },
+              dataType: "json",
+              type: "GET",
+              traditional: true,
+              success: function (data) {
+                  var status = data.Status;
+                  //未审核 = 0,
+                  //通过 = 1,
+                  //不通过 = 2
+                  if (status == 2 && typeID == "1") {
+                      $("#btnAudit").show();
+                      $("#hfStatus").val("1");
+                  }
+                  else if (status == 3 && typeID == "2") {
+                      $("#btnAudit").show();
+                      $("#hfStatus").val("1");
+                  }
+                  else if (status == 4 && typeID == "3") {
+                      $("#btnAudit").show();
+                      $("#hfStatus").val("1");
+                  }
+                  else if (status == 5 && typeID == "4") {
+                      $("#btnAudit").show();
+                      $("#hfStatus").val("1");
+                  }
+                  else if (status == 8 && typeID == "6") {
+                      if (data.AuditStatus == 0 || userType == 7) {
+                          $("#btnAudit").show();
+                          $("#hfStatus").val("1");
+                      } else {
+                          $("#btnAppeal").hide();
+                          $("#btnAudit").hide();
+                          $("#hfStatus").val("0");
+                      }
+                  }
+                  else if (status == 6) {
+                      //复审中
+                      $("#btnAppeal").show();
+                      $("#btnAudit").hide();
+                      $("#hfStatus").val("1");
+                  }
+                  else if (status == 7 && (userType == 7 || userType == 5)) {
+                      //已完成状态，质控督导和研究员可以修改指标答案
+                      $("#btnAppeal").hide();
+                      $("#btnAudit").hide();
+                      $("#hfStatus").val("1");
+                  }
+                  else {
+                      $("#btnAppeal").hide();
+                      $("#btnAudit").hide();
+                      $("#hfStatus").val("0");
+                  }
+
+                  if (userType == 10) {
+                      $("#btnAppeal").hide();
+                      $("#btnAudit").hide();
+                      $("#hfStatus").val("0");
+                  }
+                  $("#lblStatusName").text(data.Info);
+              },
+              error: function (e) {
+
+              }
+          });
+      }
+
+      function AuditUpdateOnCheck(form) {
+          var approved = $("#cbxApprove").prop("checked");
+          if (approved == true) {
+              $("#returnUser").hide();
+          }
+          else {
+              $("#ddlReturnUserType").val("");
+              $("#returnUser").show();
+          }
+          form.render("select");
+      }
+
+      function DoClose() {
+          window.opener = null;
+          window.close();
+      }
+
+      function DoSubmitAudit() {
+          $("#btnSubmitAudit").attr("disabled", true);
+          var approved = $("#cbxApprove").prop("checked");
+          var auditNotes = $("#txtAuditNote").val();
+          var returnUserType = $("#ddlReturnUserType").val();
+          if (approved == false && returnUserType == "") {
+              layer.alert("提交失败，审核不通过的情况下需要您选择退回的用户。");
+              return false;
+          }
+          var typeID = $("#hfAuditType").val();
+          var resultID = $("#hfResultID").val();
+          var url = "../Logic/QuestionnaireAudit.ashx";
+          var date = new Date();
+          $.ajax({
+              url: url,
+              data: {
+                  type: 2,
+                  Date: date,
+                  resultID: resultID,
+                  approved: approved,
+                  auditNotes: auditNotes,
+                  returnUserType: returnUserType,
+                  typeID: typeID
+              },
+              dataType: "json",
+              type: "POST",
+              traditional: true,
+              success: function (data) {
+                  if (data == "-1") {
+                      layer.alert("提交失败，系统检测到您正在处理的问卷不属于当前登录项目。<br/><br/><b>请重新登录后再处理<b/>", function (index) {
+                          layer.closeAll();
+                          QuitSystemInstance();
+                      });
+                  }
+                  else {
+                      layer.alert("提交成功.", function (index) {
+                          layer.closeAll();
+                          //                      LoadAuditHistory();
+                          //                      LoadAuditStatus();
+                          //                      LoadData();
+                          DoClose();
+                      });
+                  }
+                  $("#btnSubmitAudit").attr("disabled", false);
+              },
+              error: function (e) {
+                  $("#btnSubmitAudit").attr("disabled", false);
+              }
+          });
+      }
+
+      function ShowAuditWindow() {
+          layui.use('form', function () {
+              var form = layui.form;
+              $("#cbxApprove").prop("checked", true);
+              $("#cbxReject").prop("checked", false);
+              AuditUpdateOnCheck(form);
+              $("#ddlReturnUserType").val("");
+              $("#txtAuditNote").val("");
+              form.render("radio");
+          });
+
+          layer.open({
+              type: 1,
+              title: "审核操作",
+              area: ["500px","330px"],
+              content: $('#auditNote') //这里content是一个DOM，注意：最好该元素要存放在body最外层，否则可能被其它的相对元素所影响
+          });
+      }
+
+      function ShowAppealWindow() {
+          layui.use('form', function () {
+              var form = layui.form;
+              $("#cbxAppealApprove").prop("checked", true);
+              $("#cbxAppealReject").prop("checked", false);
+              $("#txtAppealNote").val("");
+              form.render("radio");
+          });
+
+          layer.open({
+              type: 1,
+              title: "申诉处理",
+              area: ["500px", "330px"],
+              content: $('#addAppeal') //这里content是一个DOM，注意：最好该元素要存放在body最外层，否则可能被其它的相对元素所影响
+          });
+      }
+
+      function LoadData() {
+          var positionY = $(".layui-body").scrollTop();
+
+          $("#questionlist").empty();
+          $("#questionlist").append("<tr><td colspan=\"6\" class=\"No_Search\"><img src=\"images/loading.gif\"/>正在获取数据中，请耐心等待...</td></tr>");
+          var resultID = $("#hfResultID").val();
+          var bOnlyDeduction = $("#cbxOnlyDeduction").prop("checked");
+          var bOnlyAppeal = $("#cbxOnlyAppeal").prop("checked");
+          var url = "../Logic/Question.ashx";
+          
+          var date = new Date();
+          $.ajax({
+              url: url,
+              data: {
+                  type: 26,
+                  Date: date,
+                  resultID: resultID,
+                  bOnlyDeduction: bOnlyDeduction,
+                  bOnlyAppeal: bOnlyAppeal
+              },
+              dataType: "json",
+              type: "GET",
+              traditional: true,
+              success: function (data) {
+                  var infoObj = data.Info[0];
+                  var answers = data.Answers;
+
+                  $("#lblClientCode").text(infoObj.ClientCode);
+                  $("#lblClientName").text(infoObj.ClientName);
+                  $("#lblQuestionnaireName").text(infoObj.QuestionnaireName);
+                  $("#lblPeriod").text(infoObj.Period);
+                  $("#lblVisitUserName").text(infoObj.VisitUserName);
+                  $("#txtVisitDate").val(infoObj.VisitDate);
+                  $("#txtVisitBeginTime").val(infoObj.VisitBeginTime);
+                  $("#txtVisitEndTime").val(infoObj.VisitEndTime);
+                  $("#txtVideoPath").val(infoObj.VideoPath);
+                  $("#txtVideoLength").val(infoObj.VideoLength);
+                  $("#txtDescription").val(infoObj.Description);
+                  $("#hfPlayPath").val(infoObj.PlayPath);
+                  $("#hfCoverImage").val(infoObj.CoverImage);
+                  
+
+                  $("#lblFullScore").text(infoObj.FullScore);
+                  $("#lblScore").text(infoObj.Score);
+
+                  if (infoObj.PlayPath == "") {
+                      $("#imgVideo").attr('src', "images/video.png");
+                      $("#imgVideo").unbind("click");
+                  }
+                  else {
+                      $("#imgVideo").unbind("click");
+                      if (infoObj.PlayType == "2") {
+                          $("#imgVideo").attr('src', "images/sound_lightup.png");
+                          InitAudio(infoObj.PlayPath);
+                          $("#imgVideo").bind("click", function () {
+                              ShowAudioWindow();
+                          });
+                      }
+                      else if (infoObj.PlayType == "3") {
+                          $("#imgVideo").attr('src', "images/video_lightup.png");
+                          InitVideo(infoObj.PlayPath, infoObj.CoverImage);
+                          $("#imgVideo").bind("click", function () {
+                              ShowVideoWindow();
+                          });
+                      }
+                  }
+
+                  var status = $("#hfStatus").val();
+                  if (status == "1") {
+                      $("#txtVisitDate").attr("disabled", false);
+                      $("#txtVisitBeginTime").attr("disabled", false);
+                      $("#txtVisitEndTime").attr("disabled", false);
+                      $("#txtVideoPath").attr("disabled", false);
+                      $("#txtVideoLength").attr("disabled", false);
+                      $("#txtDescription").attr("disabled", false);
+                      $("#btnSaveInfo").show();
+                  }
+                  else {
+                      $("#txtVisitDate").attr("disabled", true);
+                      $("#txtVisitBeginTime").attr("disabled", true);
+                      $("#txtVisitEndTime").attr("disabled", true);
+                      $("#txtVideoPath").attr("disabled", true);
+                      $("#txtVideoLength").attr("disabled", true);
+                      $("#txtDescription").attr("disabled", true);
+                      $("#btnSaveInfo").hide();
+                  }
+                  $("#questionlist").empty();
+                  $.each(answers, function (i, item) {
+                      var str = "";
+                      if (item.QuestionType == "7") {
+                          str += "<tr class=\"boldText\">";
+                          str += "<td>" + item.Code + " " + item.Title + "</td>";
+                          str += "<td></td>";
+                          str += "<td></td>";
+                          str += "<td></td>";
+                          str += "<td></td>";
+                          str += "<td>" + ReplaceNULL(item.TotalScore, '') + "</td>";
+                          str += "</tr>";
+                      }
+                      else {
+                          var auditNotes = ReplaceNULL(item.AuditNotes, '');
+                          var clientNotes = ReplaceNULL(item.ClientNotes, '');
+                          if (auditType == 4) {
+                              auditNotes = "";
+                          }
+
+                          if (item.Score != item.TotalScore) {
+                              str += "<tr class=\"highlightrow\">";
+                          }
+                          else {
+                              if (auditNotes != "" || clientNotes != "") {
+                                  str += "<tr class=\"normallightrow\">";
+                              }
+                              else {
+                                  str += "<tr>";
+                              }
+                          }
+                          str += "<td>" + item.Code + " " + item.Title + "</td>";
+                          var optionText = ReplaceNULL(item.OptionText, '');
+                          str += "<td>" + optionText.replace(/\\r\\n/g, "<br/>") + "</td>";
+                          str += "<td>";
+                          //status - 1 means on audit status
+
+                          var auditType = $("#hfAuditType").val();
+                          var auditTypeID = parseInt(auditType);
+                          var checkCode = infoObj.ClientCode + "-" + infoObj.ClientName + "-" + item.Code;
+                          if (status == "1") {
+                              if (item.bAllowImage == "1" || item.bAllowAudio == "1" || item.bAllowVideo == "1") {
+                                  str += "<a href=\"javascript:void(0)\" class=\"Allmb_Opera\" onclick=\"ShowUploadWindow('" + item.AnswerID + "'," + item.bAllowImage + "," + item.bAllowAudio + "," + item.bAllowVideo + ",'" + escape(checkCode) + "');\">上传</a>&nbsp;&nbsp;";
+                              }
+                              if (auditTypeID != 4) {
+                                  str += "<a href=\"javascript:void(0)\" class=\"Allmb_Opera\" onclick=\"DoEidtAnswer('" + item.ID + "','" + item.QuestionType + "','" + item.AnswerID + "');\">修改</a>&nbsp;&nbsp;";
+                              }
+
+                              if (auditTypeID == 5) {
+                                  str += "<a href=\"javascript:void(0)\" class=\"Allmb_Opera\" onclick=\"DoAddAuditNote('" + item.ID + "','" + item.AnswerID + "', '4');\">回复客户</a>&nbsp;&nbsp;";
+                              }
+                              if (auditTypeID < 3) {
+                                  auditTypeID = 3;
+                              }
+                              if (auditTypeID != 5) {
+                                  str += "<a href=\"javascript:void(0)\" class=\"Allmb_Opera\" onclick=\"DoAddAuditNote('" + item.ID + "','" + item.AnswerID + "', '" + auditTypeID + "');\">添加说明</a>&nbsp;&nbsp;";
+                              }
+
+                          }
+                          str += "<a href=\"javascript:void(0)\" class=\"Allmb_Opera\" onclick=\"ShowFilesWithList('" + item.AnswerID + "', 3);\">查看证明(" + item.UploadFileNumber + ")</a>&nbsp;&nbsp;";
+                          str += "<a href=\"javascript:void(0)\" class=\"Allmb_Opera\" onclick=\"ShowFilesWithList('" + item.AnswerID + "', 4);\">查看审核(" + item.AuditFileNumber + ")</a>&nbsp;&nbsp;";
+                          str += "<a href=\"javascript:void(0)\" class=\"Allmb_Opera\" onclick=\"ShowFilesWithList('" + item.AnswerID + "', 5);\">查看反馈(" + item.ClientFileNumber + ")</a>";
+                          str += "</td>";
+
+
+                          str += "<td>" + auditNotes.replace(/\\r\\n/g, "<br/>") + "</td>";
+                          str += "<td>" + clientNotes.replace(/\\r\\n/g, "<br/>") + "</td>";
+                          str += "<td>" + ReplaceNULL(item.TotalScore, '') + "</td>";
+                          str += "</tr>";
+                      }
+                      $("#questionlist").append(str);
+                  });
+
+                  $(".layui-body").scrollTop(positionY);
+              },
+              error: function (e) {
+
+              }
+          });
+      }
+
+      function DoAddAuditNote(questionID, answerID, auditType) {
+          $("#hfNoteQuestionID").val(questionID);
+          $("#hfNoteAuditType").val(auditType);
+          $("#txtNote").val("");
+          layer.open({
+              type: 1,
+              title: "添加说明",
+              area: ["500px", "230px"],
+              content: $('#addNote')
+          });
+      }
+
+      function CancelUserNote() {
+          layer.closeAll();
+      }
+
+      function SaveUserNote() {
+
+          var note = $("#txtNote").val();
+
+          if (note == "") {
+              layer.alert("请输入文字说明.");
+              return;
+          }
+
+          var resultID = $("#hfResultID").val();
+          var questionID = $("#hfNoteQuestionID").val();
+          var auditType = $("#hfNoteAuditType").val();
+
+          var url = "../Logic/QuestionnaireAudit.ashx";
+          var date = new Date();
+          $.ajax({
+              url: url,
+              data: {
+                  type: 6,
+                  Date: date,
+                  resultID: resultID,
+                  questionID: questionID,
+                  auditType: auditType,
+                  note: note
+              },
+              dataType: "json",
+              type: "POST",
+              traditional: true,
+              success: function (data) {
+                  if (data == "-1") {
+                      layer.alert("提交失败，系统检测到您正在处理的问卷不属于当前登录项目。<br/><br/><b>请重新登录后再处理<b/>", function (index) {
+                          layer.closeAll();
+                          QuitSystemInstance();
+                      });
+                  }
+                  else {
+                      layer.alert("提交成功.", function (index) {
+                          layer.closeAll();
+                          LoadData();
+                      });
+                  }
+              },
+              error: function (e) {
+
+              }
+          });
+      }
+
+      function DoEidtAnswer(questionID, questionType, answerID) {
+          var documentTypeID = 3; //访问员上传
+          var auditType = $("#hfAuditType").val();
+          if (auditType == "1" || auditType == "2") {
+              documentTypeID = 3; //执行督导，区控上传
+          }
+          else if (auditType == "3" || auditType == "6") {
+              documentTypeID = 4; //质控上传
+          }
+          else if (auditType == "4") {
+              documentTypeID = 5; //客户上传
+          }
+          var resultID = $("#hfResultID").val();
+          var type = "Q" + questionType + ".htm?ID=" + questionID + "&ResultID=" + resultID + "&AnswerID=" + answerID + "&DocumentTypeID=" + documentTypeID;
+          var questionUrl = "QuestionnaireEdit" + type;
+          var title = "问卷修改：" + $("#lblQuestionnaireName").text() + " - " + $("#lblClientName").text();
+          var area = ['1070px', '90%'];
+          layer.open({
+              type: 2,
+              title: title,
+              shadeClose: false,
+              area: area,
+              offset: "auto",
+              content: questionUrl,
+              shade: 0.6,
+              end: function () {
+                  LoadData();
+              }
+          });
+      }
+
+      function ShowUploadWindow(answerID,bAllowImage,bAllowAudio,bAllowVideo,questionCode) {
+          var documentTypeID = 3;//访问员上传
+          var auditType = $("#hfAuditType").val();
+          if (auditType == "1" || auditType == "2") {
+              documentTypeID = 3; //执行督导，区控上传
+          }
+          else if (auditType == "3" || auditType == "6") {
+              documentTypeID = 4; //质控上传
+          }
+          else if (auditType == "4") {
+              documentTypeID = 5; //客户上传
+          }
+
+          var fileTypes = new Array();
+          if (bAllowImage == true) {
+              fileTypes.push("1");
+          }
+          if (bAllowAudio == true) {
+              fileTypes.push("2");
+          }
+          if (bAllowVideo == true) {
+              fileTypes.push("3");
+          }
+
+          fileTypes = fileTypes.join("|");
+          var tempCode = $("#hfTempCode").val();
+          var url = "UploadQuestionFile.htm?TypeID=" + documentTypeID + "&RelatedID=" + answerID + "&FileType=" + fileTypes + "&RelatedCode=" + questionCode + "&ResultID=" + $("#hfResultID").val();
+          var title = "文件上传";
+          var area = ['700px', '310px'];
+          layer.open({
+              type: 2,
+              title: title,
+              shadeClose: false,
+              area: area,
+              offset: "auto",
+              content: url,
+              shade: 0.6,
+              end: function (index) {
+                  LoadData();
+              }
+          });
+      }
+
+      function btnCancelAppeal() {
+          layer.closeAll();
+      }
+
+      function btnSubmitAppeal() {
+
+          var approved = $("#cbxAppealApprove").prop("checked");
+          var leaveClient = $("#cbxAppealLeave").prop("checked");
+
+          var appealNote = $("#txtAppealNote").val();
+          var resultID = $("#hfResultID").val();
+          var typeID = $("#hfAuditType").val();
+          var url = "../Logic/QuestionnaireAudit.ashx";
+          var date = new Date();
+          $.ajax({
+              url: url,
+              data: {
+                  type: 2,
+                  Date: date,
+                  resultID: resultID,
+                  approved: approved,
+                  appealNote: appealNote,
+                  typeID: typeID,
+                  leaveClient: leaveClient
+              },
+              dataType: "json",
+              type: "POST",
+              traditional: true,
+              success: function (data) {
+                  if (data == "-1") {
+                      layer.alert("提交失败，系统检测到您正在处理的问卷不属于当前登录项目。<br/><br/><b>请重新登录后再处理<b/>", function (index) {
+                          layer.closeAll();
+                          QuitSystemInstance();
+                      });
+                  }
+                  else {
+                      layer.alert("提交成功.", function (index) {
+                          layer.closeAll();
+                          //                      LoadAuditHistory();
+                          //                      LoadAuditStatus();
+                          //                      LoadData();
+                          DoClose();
+                      });
+                  }
+              },
+              error: function (e) {
+
+              }
+          });
+      }
+
+      function ShowAuditHistory() {
+          layer.open({
+              type: 1,
+              title: "所有审核信息",
+              area: ["800px", "300px"],
+              content: $('#auditNoteHistory')
+          });
+      }
+
+      function LoadAuditHistory() {
+          $("#auditInfo").show();
+          $("#auditHistory").empty();
+          var resultID = $("#hfResultID").val();
+          var url = "../Logic/QuestionnaireAudit.ashx";
+          var date = new Date();
+          $.ajax({
+              url: url,
+              data: {
+                  type: 13,
+                  Date: date,
+                  resultID: resultID
+              },
+              dataType: "json",
+              type: "GET",
+              traditional: true,
+              success: function (data) {
+                  $.each(data, function (i, item) {
+                      var str = "<tr>";
+                      str += "<td>" + item.UserName + "</td>";
+                      str += "<td>" + item.Result + "</td>";
+                      str += "<td>" + item.AuditNotes + "</td>";
+                      str += "<td>" + jsonDateTimeFormatWithoutSeconds(item.AuditTime) + "</td>";
+                      str += "</tr>";
+                      $("#auditHistory").append(str);
+                  });
+
+                  var len = JSONLength(data);
+                  if (len > 0) {
+                      var firstItem = data[len - 1];
+                      var firstText = firstItem.UserName + "&nbsp;&nbsp;";
+                      firstText += jsonDateTimeFormatWithoutSeconds(firstItem.AuditTime) + "：";
+                      firstText += firstItem.Result;
+                      firstText += "，批注:" + firstItem.AuditNotes;
+                      $("#lblAuditNote").html(firstText);
+                  }
+              },
+              error: function (e) {
+
+              }
+          });
+      }
+
+  </script>
+
+  
+  <style type="text/css">
+  .webuploader-pick {
+	position: relative;
+	display: inline-block;
+	cursor: pointer;
+	background: #00b7ee;
+	padding: 5px 15px;
+	color: #fff;
+	text-align: center;
+	border-radius: 3px;
+	overflow: hidden;
+	font-size:12px;
+}
+
+.float
+{
+    width:600px;
+    height:350px;
+    z-index:1001;
+    background-color: #ffffff;
+}
+.floatAudio
+{
+    z-index:1001;
+    background-color: #ffffff;
+    padding-left:20px;
+}
+  </style>
+
+<link href="css/video-js.css" rel="stylesheet"/>	
+
+</head>
+<body>
+<!--母版页-->
+<div id="CommonTop"></div>
+<script type="text/javascript">
+    $(function () {
+        $("#CommonTop").load("CommonTop.htm");
+        $("#CommonProjectTop").load("CommonProjectTopFull.htm");
+    });
+</script>
+<!--右侧-->
+<div class="layui-tab layui-tab-brief" lay-filter="demoTitle">
+    <div id="CommonProjectTop"></div> 
+    <div class="layui-body layui-tab-content crightMainLeft">
+    	<div class="crightMainTitle">
+    		<span>审核问卷</span>
+    	</div>
+        <div style="padding: 10px 0px 0px 0px;border: 0;">
+        <blockquote class="layui-elem-quote layui-quote-nm boldText">
+            门店编号：&nbsp;<label class="lightText" id="lblClientCode"></label>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            门店名称：&nbsp;<label class="lightText" id="lblClientName"></label>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            问卷名称：&nbsp;<label class="lightText" id="lblQuestionnaireName"></label>
+            <div class="fr">当前状态：&nbsp;<label id="lblStatusName">未审核</label></div>
+            <br/><br/>
+            执行期次：&nbsp;<label class="lightText" id="lblPeriod"></label>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            标准分值：&nbsp;<label class="lightText" id="lblFullScore">-</label>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            门店得分：&nbsp;<label class="lightText" id="lblScore">-</label>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            审核信息：&nbsp;<label class="lightText" id="lblAuditNote"></label>
+            &nbsp;&nbsp;&nbsp;
+            <a class="Allmb_Opera" href="javascript:void(0)" onclick="ShowAuditHistory();">查看所有</a>
+            <div id="auditInfo" class="allhide">
+            </div>
+        </blockquote>
+        </div>
+        <form class="layui-form" action="" onsubmit="return false" id="panelCondition">
+        <hr />
+            <div class="layui-form-item" >
+                <label class="layui-form-label" style="padding-left:0px;"><strong>筛选条件：</strong></label>
+                <input type="checkbox" id="cbxOnlyDeduction" lay-filter="cbxOnlyDeduction" title="仅显示扣分题目"/>
+                <input type="checkbox" id="cbxOnlyAppeal" lay-filter="cbxOnlyAppeal" title="仅显示有申诉信息的题目" />
+            </div>
+    	</form>
+    	<div class="Allmb_table">
+    		<table class="layui-table" lay-even="">
+			  <colgroup>
+			    <col width="200">
+			    <col width="590">
+			  </colgroup>
+			  <thead>
+			    <tr>
+			      <th>基本信息</th>
+			      <th>内容</th>
+			    </tr> 
+			  </thead>
+                <tbody>
+                    <tr>
+                        <td>访问员姓名</td>
+                        <td><label id="lblVisitUserName"></label></td>
+                    </tr>
+                    <tr>
+                        <td>访问日期</td>
+                        <td>
+                            <div class="layui-input-inline">
+                                <input id="txtVisitDate" style="width: 150px; height: 30px; line-height: 30px;" type="text" autocomplete="off" class="layui-input" />
+                                <div class="InputDateIncoUpload">
+                                    <img src="images/InputDateInco.png" id="dateicon" />
+                                </div>
+
+                            </div>
+                            <span class="requiredFields">*</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>访问开始时间</td>
+                        <td>
+                            <div class="layui-input-inline">
+                                <input id="txtVisitBeginTime" style="width: 100px; height: 30px; line-height: 30px;" type="text" autocomplete="off" class="layui-input" />
+                                <div class="InputDateIncoUpload">
+                                    <img src="images/InputDateInco.png" id="fromicon" />
+                                </div>
+                            </div>
+                            <span class="requiredFields">*</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>访问结束时间</td>
+                        <td>
+                            <div class="layui-input-inline">
+                                <input id="txtVisitEndTime" style="width: 100px; height: 30px; line-height: 30px;" type="text" autocomplete="off" class="layui-input" />
+                                <div class="InputDateIncoUpload">
+                                    <img src="images/InputDateInco.png" id="toicon" />
+                                </div>
+                            </div>
+                            <span class="requiredFields">*</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>全程录像</td>
+                        <td>
+                            <div class="layui-input-inline">
+                                <input type="text" style="width: 400px; height: 30px; line-height: 30px;" autocomplete="off" placeholder="请输入网络路径或直接上传录像文件" class="layui-input" id="txtVideoPath" />
+                                <div class="InputDateIncoUpload">
+                                    <img id="imgVideo" src="images/video.png" alt="点击播放" style="cursor:pointer;" />
+                                </div>
+                            </div>
+                            <div class="layui-inline Enter_input clearfix">
+                                <label class="layui-form-label fl">播放时长：</label>
+                                <div class="Input_Date fl" style="position: relative; padding-left:5px;">
+                                    <input class="layui-input" style="height: 30px; line-height: 30px; margin-top: 5px;" value="00:00:00" id="txtVideoLength" />
+                                    <div class="InputDateInco">
+                                        <img src="images/number.png" width="19px" height="17px" />
+                                    </div>
+                                </div>
+                                <div class="fl" style="margin-left:15px;margin-top:5px;">
+                                    <button class="layui-btn layui-btn-small  layui-btn-disabled layui-btn-radius" id="btnUpload">上传录像</button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>备 注</td>
+                        <td>
+                            <div class="layui-input-inline">
+                                <textarea id="txtDescription" class="layui-textarea" style="width: 735px;" rows="3"></textarea>
+                            </div>
+                            <div class="fr" style="margin: auto;">
+                                <button class="layui-btn aq-btn-next layui-btn-small" style="margin-top: 70px;" id="btnSaveInfo" onclick="DoSaveInfo(1)">保存基本信息</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+			</table> 
+
+            <table class="layui-table" lay-even="">
+			  <colgroup>
+			    <col width="200">
+			    <col width="120">
+			    <col width="120">
+			    <col width="150">
+                <col width="150">
+			    <col width="50">
+			  </colgroup>
+			  <thead>
+			    <tr>
+			      <th>正文信息</th>
+			      <th>回答</th>
+			      <th>操作</th>
+			      <th>审核信息</th>
+                  <th>申诉信息</th>
+			      <th>得分</th>
+			    </tr> 
+			  </thead>
+			  <tbody id="questionlist">
+              
+			  </tbody>
+			</table> 
+    	</div>
+    	<div class="TextCenter mt20 mb20">
+            <button class="layui-btn aq-btn-pre" id="btnClose">关 闭</button>
+            <button class="layui-btn aq-btn-next" id="btnAudit">提交审核</button>
+            <button class="layui-btn aq-btn-next allhide" id="btnAppeal">处理申诉</button>
+            <div class="UploadBtn" style="margin-bottom: -15px; margin-left:10px; cursor: pointer; display: none;">  
+                上传文件包
+                <input type="file" id="fileupload" class="fileupload" name="fileupload" size="100"/>  
+            </div>
+            <input type="hidden" id="hfResultID" />
+            <input type="hidden" id="hfAuditType" />
+            <input type="hidden" id="hfCurrentUserType" />
+            <input type="hidden" id="hfStatus" />
+            <input type="hidden" id="hfBHasAreaUser" />
+		</div>
+   	</div>
+</div>
+
+<div id="auditNote" class="allhide mt10">
+<form class="layui-form paddingright30px" action="" onsubmit="return false;">
+  <div class="layui-form-item">
+    <label class="layui-form-label">审核结果：</label>
+    <div class="layui-input-block">
+      <input type="radio" name="audit" value="1" title="通过" checked="" id="cbxApprove" lay-filter="cbxApprove"/>
+      <input type="radio" name="audit" value="2" title="不通过" id="cbxReject" lay-filter="cbxReject"/>
+    </div>
+  </div>
+  <div class="layui-form-item layui-form-text allhide" id="returnUser">
+    <label class="layui-form-label"><span class="requiredFields">*</span> 退回对象：</label>
+    <div class="layui-input-block">
+      <select class="LaddSelect" id="ddlReturnUserType">
+		<option value="">请选择</option>  
+	  </select>
+    </div>
+  </div>
+  <div class="layui-form-item layui-form-text">
+    <label class="layui-form-label">审核批注：</label>
+    <div class="layui-input-block">
+      <textarea id="txtAuditNote" class="layui-textarea"></textarea>
+    </div>
+  </div>
+</form>
+
+<div class="TextCenter mt20 mb10">
+    <button class="layui-btn layui-btn-small aq-btn-pre" id="btnCancelAudit">取 消</button>
+    <button class="layui-btn layui-btn-small aq-btn-next" id="btnSubmitAudit">确 定</button> 
+</div>
+</div>
+
+
+<div id="addNote" class="allhide mt10">
+<form class="layui-form paddingright30px paddingleft30px" action="" onsubmit="return false;">
+  <div class="layui-form-item layui-form-text">
+      <textarea id="txtNote" class="layui-textarea"></textarea>
+      <input type="hidden" id="hfNoteQuestionID" />
+      <input type="hidden" id="hfNoteAuditType" />
+  </div>
+</form>
+<div class="TextCenter mt20 mb10">
+    <button class="layui-btn layui-btn-small aq-btn-pre" id="btnCancelNote" onclick="CancelUserNote()">取 消</button>
+    <button class="layui-btn layui-btn-small aq-btn-next" id="btnSaveNote" onclick="SaveUserNote()">确 定</button> 
+</div>
+</div>
+
+<div id="addAppeal" class="allhide mt10">
+<form class="layui-form paddingright30px" action="" onsubmit="return false;">
+  <div class="layui-form-item">
+    <label class="layui-form-label">处理结果：</label>
+    <div class="layui-input-block">
+      <input type="radio" name="appeal" value="1" title="完成申诉" checked="" id="cbxAppealApprove" lay-filter="cbxAppealApprove"/>
+      <input type="radio" name="appeal" value="2" title="不裁决申诉" id="cbxAppealLeave" lay-filter="cbxAppealLeave"/>
+    </div>
+  </div>
+  <div class="layui-form-item layui-form-text paddingleft30px">
+      <textarea id="txtAppealNote" class="layui-textarea"></textarea>
+  </div>
+</form>
+<div class="TextCenter mt20 mb10">
+    <button class="layui-btn layui-btn-small aq-btn-pre" onclick="btnCancelAppeal()">取 消</button>
+    <button class="layui-btn layui-btn-small aq-btn-next" onclick="btnSubmitAppeal()">确 定</button> 
+</div>
+</div>
+
+<div id="auditNoteHistory" class="allhide">
+    <table class="layui-table" lay-even="">
+	    <colgroup>
+	    <col width="150">
+        <col width="150">
+	    <col width="300">
+	    <col width="150">
+	    </colgroup>
+	    <thead>
+	    <tr>
+		    <th>提交人</th>
+		    <th>提交结果</th>
+            <th>提交批注</th>
+            <th>提交时间</th>
+	    </tr>
+	    </thead>
+	    <tbody id="auditHistory">
+	    </tbody>
+    </table> 
+    <div class="TextCenter mt20 mb10">
+        <button class="layui-btn layui-btn-small aq-btn-pre" onclick="btnCancelAppeal()">关 闭</button>
+    </div>
+</div>
+
+
+<div class="LoadingBg" style="display:none">
+	<div class="LoadingMain">
+    	<img src="images/loading.gif" alt=""/>正在读取文件并上传...
+    </div>
+</div>
+
+<div class="float allhide" id="floatDiv">
+    <select id="ddlLine" onchange="ChangeVideoLine(this)" style="height: 25px; margin-top:3px; margin-bottom: 3px;">
+        <option value="..">默认线路</option>
+        <option value="http://10.20.66.210:30008/Video/web">内部线路</option>
+    </select>
+	<video id="my-video" class="video-js vjs-default-skin vjs-big-play-centered" 
+        controls="true" preload="auto" width="600" height="350" data-setup="{}">
+	</video>
+    <input type="hidden" id="hfPlayPath" />
+    <input type="hidden" id="hfCoverImage" />
+</div>
+
+<div class="floatAudio allhide" id="floatAudio">
+	 <audio id="my-audio" src="" preload="auto" />
+</div>
+
+</body>
+</html>

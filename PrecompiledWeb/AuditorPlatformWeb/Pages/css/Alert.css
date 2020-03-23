@@ -1,0 +1,31 @@
+@charset "utf-8";
+/* CSS Document */
+.AlertM{width:97%; margin:10px auto; border:1px solid #e9e9e9;}
+.aqSpeed{ background:#f9f9f9;padding:5px 30px 20px 30px; box-sizing:border-box;}
+.aqSpeed_Tit{color:#383c48;line-height:30px;}
+.aqSpeed .layui-progress-bar{ background:#ff5c03;}
+.aq_Main{padding:20px 30px 15px 30px;}
+.aq_MainTit{ color:#099082; line-height:30px; font-size:15px; border-bottom: 1px solid #e7e7e7;}
+.aq_MainTitInco{ vertical-align: top; margin-right: 0px;}
+.aq_questionM{ padding: 10px 0px 0px 0px; line-height: 24px;}
+.aq_Answer p{padding:5px 10px;}
+.AnswerArea{margin-top:5px; padding-left: 35px; box-sizing: border-box;}
+.aq_Enclosure .aq_legend{font-size:14px; font-weight: 800;}
+.aq_Enclosure .layui-form span{padding-right:0; padding-left: 5px; color:#000}
+.aq_Enclosure .layui-btn{height:33px; line-height: 33px;}
+.aq_EnListOpera a{text-decoration: underline; color:#017297; margin-right:10px;}
+.aq_Btn{text-align: center; margin: 15px 0;}
+.aq_Btn .layui-btn{width:97px;}
+.aqSpeed_JdM{ width:100%; padding-right:75px; box-sizing: border-box; position:relative;}
+.aqSpeed_JdTxt{position:absolute; right:0; width:75px; top:0; text-align: right;}
+
+.aq_EnList{ overflow: hidden;}
+.Enter_input{width:50%; float:left; margin-bottom: 25px;}
+.Enter_input .layui-form-label{padding-left:5px; padding-right: 5px; width:110px;}
+.Enter_input .layui-input-block{ margin-left:125px; }
+.optionForm input[type='text']
+{
+    margin-top:10px;
+    height:23px;
+    line-height: 23px;
+}

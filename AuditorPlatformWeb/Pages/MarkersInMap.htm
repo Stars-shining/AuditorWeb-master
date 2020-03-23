@@ -1,0 +1,234 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <meta http-equiv="Expires" content="0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Cache-control" content="no-cache">
+<meta http-equiv="Cache" content="no-cache">
+
+    <title>测试地图</title>
+    <link rel="stylesheet" href="css/layui.css"  media="all">
+    <link rel="stylesheet" href="css/common.css"  media="all">
+    <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=FqqKCYo1Lq60WcutSDnugbG6tfU9Tctt"></script>
+    <script type="text/javascript" src="js/jquery_2-1-0_min.js"  charset="utf-8"></script>
+    <script type="text/javascript" src="js/lay-new/layui.js"></script>
+    <script type="text/javascript">
+
+        var layer;
+        layui.use(['form', 'layedit', 'laydate'], function () {
+            layer = layui.layer
+        });
+
+        $(function () {
+            $.ajaxSettings.async = false;
+
+            LoadUpload();
+
+            $.ajaxSettings.async = true;
+        });
+
+        function LoadUpload() {
+            layui.use('upload', function () {
+                var upload = layui.upload;
+                upload.render({
+                    elem: '#btnUpload',
+                    url: '../Logic/Upload.ashx?type=20',
+                    data: { date: new Date() },
+                    accept: 'file',
+                    before: function (obj) { //obj参数包含的信息，跟 choose回调完全一致，可参见上文。
+                        $(".LoadingBg").show();
+                        //initMap();
+                    },
+                    done: function (res) {
+                        bindMap(res);
+                    },
+                    error: function (e) {
+                        layer.alert("请求异常！" + e.toString());
+                        $(".LoadingBg").hide();
+                    }
+                });
+            });
+        }
+
+        function JSONLength(obj) {
+            var size = 0, key;
+            for (key in obj) {
+                if (obj.hasOwnProperty(key)) size++;
+            }
+            return size;
+        }
+
+        function bindMap(data) {
+            $("#tips").show();
+            if (data != null) {
+                var cityName = data.CityName;
+                if (cityName == "") {
+                    layer.alert("系统未从上传的文件中找到城市信息，请重试。");
+                    return;
+                }
+                map.centerAndZoom(cityName, 12);
+                map.addEventListener("tilesloaded", function () {
+                    var dataPoints = data.Points;
+                    var dataLength = JSONLength(dataPoints);
+                    var validNum = 0;
+                    if (dataLength > 0) {
+                        var points = [];  // 添加海量点数据
+                        $.each(dataPoints, function (i, item) {
+                            var xValue = parseFloat(item.X);
+                            var yValue = parseFloat(item.Y);
+
+                            if (xValue > 0 && yValue > 0) {
+                                var xy = qqMapTransBMap(xValue, yValue);
+                                points.push(new BMap.Point(xy.lng, xy.lat));
+                                validNum++;
+                            }
+                        });
+
+                        var options = {
+                            size: BMAP_POINT_SIZE_NORMAL,
+                            shape: BMAP_POINT_SHAPE_CIRCLE,
+                            color: 'red'
+                        }
+
+                        var pointCollection = new BMap.PointCollection(points, options);
+                        pointCollection.addEventListener("click", function (e) {
+                            var name="";//名称
+                            var address="";//地址
+                             $.each(dataPoints, function (i, item) {
+                                var xValue = parseFloat(item.X);
+                                var yValue = parseFloat(item.Y);
+                                var xy = qqMapTransBMap(xValue, yValue);
+                                xValue = xy.lng;
+                                yValue = xy.lat;
+                                if(xValue == e.point.lng && yValue == e.point.lat)
+                                {
+                                    name = item.Name;
+                                    address = item.Address;
+                                    return false;
+                                }
+                            });
+                            var point = new BMap.Point(e.point.lng, e.point.lat);
+                            var opts = {
+                                width: 250, // 信息窗口宽度
+                                height: 50, // 信息窗口高度
+                                title:"", // 信息窗口标题
+                                enableMessage: false,//设置允许信息窗发送短息
+                            }
+                            var infowindow = new BMap.InfoWindow("门店名称:"+name+"<br/><br/>门店地址:"+address, opts);
+                            map.openInfoWindow(infowindow, point);
+                        });
+                        map.addOverlay(pointCollection);
+                    }
+                    $("#txtNum").text(validNum);
+                    $(".LoadingBg").hide();
+                });
+
+            }
+            else {
+                $("#txtNum").text("0");
+                $(".LoadingBg").hide();
+            }
+        }
+
+        function qqMapTransBMap(lng, lat) {
+            var x_pi = 3.14159265358979324 * 3000.0 / 180.0;
+            var x = lng;
+            var y = lat;
+            var z = Math.sqrt(x * x + y * y) + 0.00002 * Math.sin(y * x_pi);
+            var theta = Math.atan2(y, x) + 0.000003 * Math.cos(x * x_pi);
+            var lngs = z * Math.cos(theta) + 0.0065;
+            var lats = z * Math.sin(theta) + 0.006;
+            return {
+                lng: lngs,
+                lat: lats
+            }
+        }
+
+        function AddMarkerByXY(valueX, valueY) {
+            var new_point = new BMap.Point(valueX, valueY);
+            var marker = new BMap.Marker(new_point);  // 创建标注
+            map.addOverlay(marker);              // 将标注添加到地图中
+        }
+
+        function initMap() {
+            createMap();
+            setMapEvent();
+            addMapControl();
+            addMapOverlay();
+        }
+        function createMap() {
+            map = new BMap.Map("map");
+            map.centerAndZoom("中国", 5);
+            changeSize();
+        }
+        function setMapEvent() {
+            map.enableScrollWheelZoom();
+            map.enableKeyboard();
+            map.enableDragging();
+            map.enableDoubleClickZoom()
+        }
+        function addClickHandler(target, window) {
+            target.addEventListener("click", function () {
+                target.openInfoWindow(window);
+            });
+        }
+        function addMapOverlay() {
+        }
+        function addMapControl() {
+            var scaleControl = new BMap.ScaleControl({ anchor: BMAP_ANCHOR_BOTTOM_LEFT });
+            scaleControl.setUnit(BMAP_UNIT_IMPERIAL);
+            map.addControl(scaleControl);
+            var navControl = new BMap.NavigationControl({ anchor: BMAP_ANCHOR_TOP_LEFT, type: BMAP_NAVIGATION_CONTROL_LARGE });
+            map.addControl(navControl);
+            var overviewControl = new BMap.OverviewMapControl({ anchor: BMAP_ANCHOR_BOTTOM_RIGHT, isOpen: true });
+            map.addControl(overviewControl);
+        }
+        function changeSize() { 
+			var showMap = document.getElementById("map"); 
+			showMap.style.width = document.documentElement.clientWidth + "px"; 
+			showMap.style.height = document.documentElement.clientHeight + "px"; 
+		}
+		
+  </script>
+  </head>
+  <body>
+    <div style="cursor: pointer; padding-left: 0px; float:left;">  
+        <button type="button" class="layui-btn" id="btnUpload" onclick="return false;">导入地址</button>    
+    </div>
+    <div id="tips" style="float:left; display: none; padding-top: 8px;">
+        共生成 <span id="txtNum"></span> 个点位。
+    </div>
+    <div style="width:1500px;height:950px;border:#ccc solid 1px;font-size:12px; float: left;" id="map"></div>
+    <script type="text/javascript">
+        var map;
+        initMap();
+        window.onresize = changeSize;
+        /*
+        AddMarkerByXY(121.370507, 31.230175);
+        AddMarkerByXY(121.40238, 31.21101);
+        AddMarkerByXY(121.372084, 31.108576);
+        AddMarkerByXY(121.685195, 31.191136);
+        AddMarkerByXY(121.306186, 31.200934);
+        AddMarkerByXY(121.408488, 31.176074);
+        AddMarkerByXY(121.68672, 31.192237);
+        AddMarkerByXY(121.68515, 31.190258);
+        AddMarkerByXY(121.68483, 31.191839);
+        AddMarkerByXY(121.349745, 31.154897);
+        AddMarkerByXY(121.68672, 31.192237);
+        AddMarkerByXY(121.442879, 30.963656);
+        AddMarkerByXY(121.456936, 30.912635);
+        AddMarkerByXY(121.461092, 30.909124);
+        AddMarkerByXY(121.527234, 30.829814);
+        AddMarkerByXY(121.368139, 31.212006);
+        */
+    </script>
+
+    <div class="LoadingBg allhide">
+	<div class="LoadingMain">
+    	<img src="images/loading.gif" alt=""/>正在生成中...
+    </div>
+</div>
+  </body>
+</html>

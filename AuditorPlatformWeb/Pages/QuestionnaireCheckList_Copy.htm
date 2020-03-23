@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>渠道核查在线管理平台</title>
+<link rel="shortcut icon" href="favicon.ico"/>
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">  
+  <link rel="stylesheet" href="css/layui.css"  media="all">
+  <link rel="stylesheet" href="css/common.css"  media="all">
+  <link href="css/Projectnfo.css" rel="stylesheet" type="text/css" media="all"/>
+
+  <script type="text/javascript" src="js/jquery_2-1-0_min.js"  charset="utf-8"></script>
+  <script src="js/Common.js" type="text/javascript"></script>
+  <script src="js/layui.js" type="text/javascript" charset="utf-8"></script>
+
+  <script type="text/javascript" language="javascript">
+
+      $(function () {
+
+//          $("#btnSearch").click(function () {
+//              Search();
+//          });
+//          $("#btnNew").click(function () {
+//              AddNewProject();
+//          });
+
+          //Search();
+      });
+
+
+//      function Search() {
+//          var name = $("#txtName").val();
+//          var statusID = $("#ddlStatus").val();
+//          var fromdate = $("#calFromDate").val();
+//          var todate = $("#calToDate").val();
+
+//          var pageSize = 100;
+
+//          $("#projectList").empty();
+//          $("#projectList").append("<tr><td colspan=\"5\" class=\"No_Search\"><img src=\"images/loading.gif\"/>正在后台处理中，请耐心等待...</td></tr>");
+//          var date = new Date();
+//          var url = '../Logic/Project.ashx';
+//          $.getJSON(url, { type: "1", date: date, name: name, fromdate: fromdate, todate: todate, statusID: statusID }, function (data) {
+//              BindData(data, pageSize, 1);
+//          });
+
+//      }
+
+//      function BindData(data, pageSize, pageIndex) {
+//          $("#projectList").html("");
+//          var perPage = pageSize;
+//          var index = 0;
+//          $.each(data, function (i, item) {
+//              index = i + 1;
+//              var currentIndex = parseInt(i / perPage + 1);
+//              if (currentIndex == pageIndex) {
+//                  var str = "<tr onclick=\"ViewDetails('" + item.ID + "', event);\">";
+//                  str += ("<td>" + item.Name + "</td>");
+//                  str += ("<td>" + item.ProjectType + "</td>");
+//                  str += ("<td>" + jsonDateFormat(item.FromDate) + "</td>");
+//                  str += ("<td>" + jsonDateFormat(item.ToDate) + "</td>");
+//                  str += ("<td>" + item.ProjectStatus + "</td>");
+//                  str += ("<td><a href=\"javascript:void(0)\" class=\"Allmb_Opera\" onclick=\"LoginProject('" + item.ID + "')\">进入项目</a></td>");
+//                  str += ("<input type=\"hidden\" value=\"" + item.ID + "\" />");
+//                  str += "</tr>";
+//                  $("#projectList").append(str);
+//              }
+//          });
+
+
+//          var totalNumber = index;
+//          $("#txtResourceNumber").text(totalNumber);
+//          var pageNumber = parseInt(totalNumber / perPage + 1);
+//          if (totalNumber > 0 && totalNumber % perPage == 0) {
+//              pageNumber = pageNumber - 1;
+//          }
+
+//          layui.use(['laypage'], function () {
+//              var laypage = layui.laypage;
+//              laypage({
+//                  cont: 'pagecontrol', //容器。值支持id名、原生dom对象，jquery对象。【如该容器为】：<div id="page1"></div>
+//                  pages: pageNumber, //通过后台拿到的总页数
+//                  curr: pageIndex || 1, //当前页
+//                  jump: function (obj, first) { //触发分页后的回调
+//                      if (!first) { //点击跳页触发函数自身，并传递当前页：obj.curr
+//                          BindData(data, pageSize, obj.curr);
+//                      }
+//                  }
+//              });
+//          });
+//          if (totalNumber <= 0) {
+//              $("#projectList").append("<tr><td colspan=\"5\" class=\"No_Search\">根据以上条件，没有查询到任何记录</td></tr>");
+//          }
+//      }
+
+//      function LoginProject(id) {
+//          var date = new Date();
+//          var url = '../Logic/Project.ashx';
+//          $.ajax({
+//              url: url,
+//              data: {
+//                  Type: 6,
+//                  Date: date,
+//                  id: id
+//              },
+//              dataType: "json",
+//              type: "POST",
+//              traditional: true,
+//              success: function (data) {
+//                  window.location = "ProjectIndex.htm";
+//              },
+//              error: function () {
+//                  layer.alert("跳转失败！");
+//              }
+//          });
+//      }
+
+//      function ViewDetails(id,evt) {
+//          var e = evt || window.event;
+//          var curobj = e.srcElement ? e.srcElement : e.target;
+//          if (curobj.tagName == "A") { 
+//            
+//          }
+//          else {
+//              window.location = "ProjectInfo.htm?id=" + id + "&st=1";
+//          } 
+//      }
+
+//      function AddNewProject() {
+//          window.location = "ProjectInfo.htm";
+//      }
+  
+  </script>
+
+</head>
+<body>
+<!--母版页-->
+    <div id="CommonTop"></div>
+    <div id="CommonLeft"></div>
+	<script type="text/javascript">
+	    $(function () {
+	        $("#CommonTop").load("CommonTop.htm?s=" + (new Date()).toLocaleTimeString());
+	        LoadCurrentProjectLeft();
+	        $("#CommonProjectTop").load("CommonProjectTop.htm");
+	    });
+    </script>
+<!--内容页-->
+<div class="layui-tab layui-tab-brief" lay-filter="demoTitle">
+    <div id="CommonProjectTop"></div>   
+    <div class="layui-body layui-tab-content crightMain">
+    	<div class="crightMainTitle">
+    		<span>问卷审核</span>
+    	</div>
+    	<div class="crightMainSubTit">
+    		<strong>筛选条件：</strong>
+    	</div>
+        <div class="crightSearch">
+    		<form class="layui-form" action="">
+    		<div class="CsearchInputM">    			
+    			<div class="layui-inline">
+			      <label class="layui-form-label">机构名称：</label>
+			      <div class="layui-input-block">
+			       <input type="text" id="txtName" name="title" lay-verify="title" autocomplete="off" placeholder="默认不限" style="width:230px;" class="layui-input"/>
+			      </div>
+			    </div>		
+                <div class="layui-inline">
+			    	 	<label class="layui-form-label">省份：</label>
+					    <div class="layui-input-block  Input_select">
+					      <select id="Select1">
+					        <option value="-999">不限</option>
+					      </select>
+					    </div>
+			    </div>
+                <div class="layui-inline">
+			    	 	<label class="layui-form-label">城市：</label>
+					    <div class="layui-input-block  Input_select">
+					      <select id="Select2">
+					        <option value="-999">不限</option>
+					      </select>
+					    </div>
+			    </div>
+                <div class="layui-inline">
+			    	 	<label class="layui-form-label">区县：</label>
+					    <div class="layui-input-block  Input_select">
+					      <select id="Select4">
+					        <option value="-999">不限</option>
+					      </select>
+					    </div>
+			    </div>	   
+			    <div class="layui-inline">
+			    	 	<label class="layui-form-label">期次：</label>
+					    <div class="layui-input-block  Input_select">
+					      <select id="ddlStatus">
+					        <option value="-999">不限</option>
+					      </select>
+					    </div>
+			    </div>
+                <div class="layui-inline">
+			    	<label class="layui-form-label">审核状态：</label>
+					<div class="layui-input-block  Input_select">
+					    <select id="Select3">
+					    <option value="-999">不限</option>
+					    <option value="1">未审核</option>
+                        <option value="2">督导审核已通过</option>
+					    <option value="3">质控审核已通过</option>
+                        <option value="4">终审已通过</option>
+					    </select>
+					</div>
+			    </div>
+    		</div>
+    		</form>
+
+            <div class="crightSearchBtn">
+    			<button class="layui-btn" id="btnSearch">查 询</button>
+    		</div>
+    	</div>
+    	<hr/>
+    	<div class="Allmb_table">
+    		<table class="layui-table" lay-even="" lay-skin="nob">
+			  <colgroup>
+			    <col width="60">
+                <col width="300">
+			    <col width="100">
+			    <col width="100">
+                <col width="100">
+                <col width="100">
+                <col width="100">
+			    <col width="60">
+                <col width="60">
+			  </colgroup>
+			  <thead>
+			    <tr>
+			      <th>机构编号</th>
+                  <th>机构名称</th>
+                  <th>所在城市</th>
+                  <th>所在区县</th>
+                  <th>期次</th>
+                  <th>录入状态</th>
+                  <th>审核状态</th>
+                  <th>分数</th>
+                  <th>操作</th>
+			    </tr> 
+			  </thead>
+			  <tbody id="projectList">
+                 <tr>
+			      <td>BJ3001</td>			      
+			      <td>西二旗支行</td>
+			      <td>北京市</td>
+                  <td>海淀区</td>
+                  <td>2017年5月</td>
+                  <td>未录入</td>
+                  <td>未审核</td>
+                  <td> -- </td>
+                  <td><a href="javascript:void(0)" class="Allmb_Opera">审核</a></td>
+			    </tr>
+                <tr>
+			      <td>BJ3002</td>			      
+			      <td>德胜大街支行</td>
+			      <td>北京市</td>
+                  <td>西城区</td>
+			      <td>2017年5月</td>
+                  <td>未录入</td>
+                  <td>未审核</td>
+                  <td> -- </td>
+                  <td><a href="javascript:void(0)" class="Allmb_Opera">审核</a></td>
+			    </tr>
+                <tr>
+			      <td>BJ3003</td>			      
+			      <td>军博支行</td>
+			      <td>北京市</td>
+                  <td>丰台区</td>
+			      <td>2017年5月</td>
+                  <td>未录入</td>
+                  <td>未审核</td>
+                  <td> -- </td>
+                  <td><a href="javascript:void(0)" class="Allmb_Opera">审核</a></td>
+			    </tr>
+                <tr>
+			      <td>BJ3004</td>			      
+			      <td>测试数据支行</td>
+			      <td>北京市</td>
+                  <td>海淀区</td>
+			      <td>2017年5月</td>
+                  <td>未录入</td>
+                  <td>未审核</td>
+                  <td> -- </td>
+                  <td><a href="javascript:void(0)" class="Allmb_Opera">审核</a></td>
+			    </tr>
+			  </tbody>
+			</table> 
+            <div id="pagecontrol"></div>
+    	</div>
+    	<div class="Txtright">
+    		<!--<button class="layui-btn lBtn_black mt10" id="btnNew"></button>-->
+		</div> 
+   	</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,428 @@
+﻿<script type="text/javascript">
+
+    layui.use('element', function () {
+        var element = $.isFunction(layui.element)?layui.element():layui.element; //导航的hover效果、二级菜单等功能，需要依赖element模块
+        //监听导航点击
+        element.on('nav(demo)', function (elem) {
+            //console.log(elem)
+            layer.msg(elem.text());
+        });
+
+    });
+
+    layui.use(['form', 'layedit', 'laydate'], function () {
+        var form = $.isFunction(layui.form) ? layui.form() : layui.form
+  , layer = layui.layer
+  , layedit = layui.layedit
+  , laydate = layui.laydate;
+
+
+    });
+
+    $(function () {
+
+        $("#lblLoginUserName").text(userName);
+        
+    });
+
+    function QuitSystem() {
+        layer.confirm('您确定要退出系统吗？', {
+            btn: ['确定', '取消']
+        }, function (index) {
+            layer.close(index);
+            QuitSystemInstance();
+        });
+    }
+
+    function QuitSystemInstance() {
+        var date = new Date();
+        var url = '../Logic/Users.ashx';
+        $.ajax({
+            url: url,
+            data: {
+                Type: 2,
+                Date: date
+            },
+            dataType: "text",
+            type: "POST",
+            traditional: true,
+            success: function (data) {
+                if (data == "1") {
+                    window.location.href = "login.htm";
+                }
+                else {
+                    window.location.href = data;
+                }
+            },
+            error: function () {
+            }
+        });
+    }
+
+    function ChangePwd() {
+        $("#txtOldPwd").val("");
+        $("#txtNewPwd").val("");
+        $("#txtNewPwdConfirm").val("");
+
+        var title = "修改密码";
+        var area = ['420px', '300px'];
+        layer.open({
+            type: 1,
+            title: title,
+            shadeClose: true,
+            area: area,
+            offset: "auto",
+            content: $("#changepwd"),
+            shade: 0.6,
+            end: function () {
+                $("#changepwd").hide();
+            }
+        });
+    }
+
+    function DoCancelChangePwd() {
+        layer.closeAll();
+    }
+
+    function DoSaveChangePwd() {
+        var oldPwd = $("#txtOldPwd").val();
+        var newPwd = $("#txtNewPwd").val();
+        var newPwdConfirm = $("#txtNewPwdConfirm").val();
+
+        var msgs = [];
+        if (oldPwd == "") {
+            msgs.push("请输入旧密码.");
+        }
+        if (newPwd == "") {
+            msgs.push("请输入新密码.");
+        }
+        if (newPwd == oldPwd) {
+            msgs.push("新密码和旧密码不能相同.请重新输入.");
+        }
+        if (newPwdConfirm == "") {
+            msgs.push("请再次输入新密码.");
+        }
+        if (newPwd != newPwdConfirm) {
+            msgs.push("两次输入的新密码不一致，请重新输入.");
+        }
+
+        if (msgs.length > 0) {
+            var message = "";
+            $.each(msgs, function (n, value) {
+                message += ((n + 1) + "." + value);
+                message += "<br/>";
+            });
+            layer.alert(message);
+            return false;
+        }
+
+        var date = new Date();
+        var url = '../Logic/Users.ashx';
+        $.ajax({
+            url: url,
+            data: {
+                Type: 12,
+                Date: date,
+                oldPwd: oldPwd,
+                newPwd: newPwd,
+                newPwdConfirm: newPwdConfirm
+            },
+            dataType: "json",
+            type: "POST",
+            traditional: true,
+            success: function (data) {
+                if (data == "1") {
+                    //success 
+                    layer.alert("修改成功，请重新登录系统.", function (index) {
+                        layer.close(index);
+                        QuitSystemInstance();
+                    });
+                }
+                else if (data == "2") {
+                    //old password is incorrect
+                    layer.alert("旧密码输入不正确，请重新输入旧密码!.", function (index) {
+                        layer.close(index);
+                        $("#txtOldPwd").val("");
+                    });
+                }
+                else if (data == "3") {
+                    //sesstion time out
+                    layer.alert("由于您长时间未进行任何操作，当前会话已失效，请您重新登录后再尝试.", function (index) {
+                        layer.close(index);
+                        window.location.href = "login.htm";
+                    });
+                }
+            },
+            error: function () {
+            }
+        });
+    }
+    var viewer = null;
+    function LoadFiles(relatedID, typeID, tempCode) {
+
+        if (relatedID == 'null') {
+            relatedID = "-1";
+        }
+        var url = "../Logic/QuestionnaireAudit.ashx";
+        var date = new Date();
+        $.ajax({
+            url: url,
+            data: {
+                type: 5,
+                Date: date,
+                relatedID: relatedID,
+                typeID: typeID,
+                tempCode: tempCode
+            },
+            dataType: "json",
+            type: "GET",
+            traditional: true,
+            success: function (data) {
+                if (data != null) {
+                    $("#lblFileWindowNumber").text(data.length);
+                }
+                $("#fileWindowList").empty();
+                $("#fileAudioList").empty();
+                $("#fileVideoList").empty();
+                var hasImage = false;
+                var hasAudio = false;
+                var hasVideo = false;
+                if (data != null && data.length > 0) {
+                    $.each(data, function (i, item) {
+                        var pictitle = item.FileName;
+                        var url = item.RelevantPath;
+                        var thumbUrl = item.ThumbRelevantPath;
+                        var fileType = item.FileType;
+                        if (thumbUrl == null || thumbUrl == "") {
+                            thumbUrl = url;
+                        }
+                        if (fileType == 1) {
+                            //图片
+                            $("#fileWindowList").append("<li><img data-original='" + url + "' src='" + thumbUrl + "' alt='" + pictitle + "'/></li>");
+                            hasImage = true;
+                        }
+                        else if (fileType == 2) {
+                            //录音音频
+                            $("#fileAudioList").append("<li><img onclick=\"InitSubAudio('" + url + "');\" src=\"images/audioCover.png\" alt=\"" + pictitle + "\"/></li>");
+                            hasAudio = true;
+                        }
+                        else if (fileType == 3) {
+                            //录像视频
+                            $("#fileVideoList").append("<li><img onclick=\"InitSubVideo('" + url + "','" + thumbUrl + "');\" src=\"" + thumbUrl + "\" alt=\"" + pictitle + "\"/></li>");
+                            hasVideo = true;
+                        }
+
+
+                    });
+                    if (hasImage) {
+                        $("#imagePanel").show();
+                    }
+                    if (hasAudio) {
+                        $("#audioPanel").show();
+                    }
+                    if (hasVideo) {
+                        $("#videoPanel").show();
+                    }
+
+                    if (viewer != null && viewer != undefined) {
+                        viewer.destroy();
+                    }
+                    viewer = new Viewer(document.getElementById('fileWindowList'), {
+                        url: 'data-original',
+                        viewed: function () {
+                            $(".viewer-container").unbind("click");
+                            $(".viewer-container").bind("click", function (evt) {
+                                var e = evt || window.event;
+                                var curobj = e.srcElement ? e.srcElement : e.target;
+                                if (curobj.tagName == "IMG" || curobj.tagName == "LI") {
+
+                                    return;
+                                }
+                                viewer.hide();
+                            });
+                        }
+                    });
+                }
+            },
+            error: function (e) {
+
+            }
+        });
+    }
+
+    function InitSubAudio(aPath) {
+        audiojs.events.ready(function () {
+            audiojs.instances = [];
+            audiojs.instanceCount = 0;
+            var audio = document.getElementById("subAudio");
+            audio.src = aPath;
+            var as = audiojs.createAll();
+        });
+        var title = aPath.substr(aPath.lastIndexOf('/') + 1);
+        ShowAudioWindowSub(title);
+        audiojs.instances.audiojs0.play();      
+    }
+
+    function InitSubVideo(vPath, vCover) {
+        document.getElementById("ddlSubLine").selectedIndex = 0;
+        $("#hfPlayPathSub").val(vPath);
+        $("#hfCoverImageSub").val(vCover);
+        SubPlayVideo(vPath, vCover);
+        var title = vPath.substr(vPath.lastIndexOf('/') + 1);
+        ShowVideoWindowSub(title);
+    }
+
+    function SubPlayVideo(vPath, vCover) {
+        var subplayer = videojs('subVideo', {}, function () {
+            this.src(vPath);
+            if (vCover == null || vCover == "") {
+                this.poster('images/videoCover.jpg');
+            }
+            else {
+                this.poster(vCover);
+            }
+        });
+        videojs("subVideo").ready(function () {
+            var subplayer = this;
+        });
+    }
+
+    function ChangeSubVideoLine(ddlLine) {
+
+        var playPath = $("#hfPlayPathSub").val();
+        var coverImage = $("#hfCoverImageSub").val();
+        if (playPath != "") {
+            var line = $(ddlLine).val();
+            playPath = playPath.substr(playPath.indexOf("..") + 2);
+            if (coverImage != "") {
+                coverImage = coverImage.substr(coverImage.indexOf("..") + 2);
+                coverImage = line + coverImage;
+            }
+            playPath = line + playPath;
+            SubPlayVideo(playPath, coverImage);
+            videojs("subVideo").ready(function () {
+                var subplayer = this;
+                subplayer.play();
+            });
+        }
+    }
+
+    function ShowAudioWindowSub(title) {
+        //边缘弹出
+        layer.open({
+            type: 1
+              , title: '录音证明: ' + title
+              , content: $('#floatDivAudio')
+              , area: ['500px', '100px']
+              , shade: 0.6
+            //  , success: function () {
+            //      audiojs.instances.audiojs0.play();
+            //    }
+              , end: function () {
+                  //audiojs.pause();
+                  //audiojs.elements = null;
+                  //audiojs.instances = [];
+                  //audiojs.instanceCount = 0;
+                  //audiojs.flashSource = "";
+              }
+        });
+    }
+
+    function ShowVideoWindowSub(title) {
+        //边缘弹出
+        layer.open({
+            type: 1
+              , title: '录像证明: ' + title
+              , content: $('#floatDivSub')
+              , area: ['600px', '425px']
+              , shade:0.6
+        });
+    }
+
+
+</script>
+<div style="position:fixed;left:0; top:0; width:100%;">
+	<div class="layui-header Ctop_m">
+		<div class="Ctop_Border"></div>
+		<div class="Clogo">
+			<img src="images/logo.png" />
+		</div>
+		<div class="ctop_Infor">
+			<span class="ctop_head">
+				<img src="images/head.png" />
+			</span>
+			<span class="ctop_name" id="lblLoginUserName">姓名</span>
+			<a href="javascript:void(0)" class="ctop_exit" onclick="ChangePwd();">修改密码</a>
+            <a href="javascript:void(0)" class="ctop_exit" onclick="QuitSystem();">退出登录</a>
+		</div>
+	</div>
+</div>
+
+<div class="allhide mt20" id="changepwd">
+<form class="layui-form paddingright30px" action="" onsubmit="return false;"> 
+  <div class="layui-form-item">
+    <label class="layui-form-label"><span class="redColor">*</span>旧密码：</label>
+    <div class="layui-input-block">
+      <input type="password" id="txtOldPwd" lay-verify="txtOldPwd" autocomplete="off" placeholder="请输入旧密码" class="layui-input" />
+    </div>
+  </div>
+    <div class="layui-form-item">
+    <label class="layui-form-label"><span class="redColor">*</span>新密码：</label>
+    <div class="layui-input-block">
+      <input type="password" id="txtNewPwd" lay-verify="txtNewPwd" autocomplete="off" placeholder="请输入新密码" class="layui-input" />
+    </div>
+  </div>
+    <div class="layui-form-item">
+    <label class="layui-form-label"><span class="redColor">*</span>确认：</label>
+    <div class="layui-input-block">
+      <input type="password" id="txtNewPwdConfirm" lay-verify="txtNewPwdConfirm" autocomplete="off" placeholder="请再次输入新密码" class="layui-input" />
+    </div>
+  </div>
+</form>
+<div class="TextCenter">
+    <button class="layui-btn layui-btn-normal" onclick="DoSaveChangePwd();">保存</button>  
+    <button class="layui-btn layui-btn-dakgreen" onclick="DoCancelChangePwd();">取消</button>	
+</div>  
+</div>
+
+    <style type="text/css">
+.filelist li { display: inline-block; margin-left: 1%; padding-top: 1%;}
+.filelist li img { max-width: 200px; max-height:200px; }
+</style>
+
+<div id="fileWindow" class="allhide">
+    <div style="padding: 10px 0px 0px 10px">
+        <label>当前查看文件数：<span id="lblFileWindowNumber">-</span></label>
+    </div>
+    <div id="imagePanel" class="allhide">
+        <hr /><span style="padding-left:10px">图片证明</span>
+        <ul id="fileWindowList" class="filelist">
+        </ul>
+    </div>
+    <div id="audioPanel" class="allhide">
+        <hr /><span style="padding-left:10px">录音证明</span>
+        <ul id="fileAudioList" class="filelist">
+        </ul>
+    </div>
+    <div id="videoPanel" class="allhide" style="padding-bottom:10px;">
+        <hr /><span style="padding-left:10px">录像证明</span>
+        <ul id="fileVideoList" class="filelist">
+        </ul>
+    </div>
+</div>
+
+<div class="allhide" id="floatDivSub">
+    <select id="ddlSubLine" onchange="ChangeSubVideoLine(this)" style="height: 25px; margin-top:3px; margin-bottom: 3px;">
+        <option value="..">默认线路</option>
+        <option value="http://10.20.66.210:30008/Video/web">内部线路</option>
+    </select>
+	<video id="subVideo" class="video-js vjs-default-skin vjs-big-play-centered" 
+        controls="true" preload="auto" autoplay="autoplay" width="600" height="350" data-setup="{}">
+	</video>
+    <input type="hidden" id="hfPlayPathSub" />
+    <input type="hidden" id="hfCoverImageSub" />
+</div>
+
+<div class="allhide" id="floatDivAudio" style="padding-left:20px;">
+	 <audio id="subAudio" src="" preload="auto"/>
+</div>

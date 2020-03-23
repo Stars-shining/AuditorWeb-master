@@ -1,0 +1,55 @@
+.lpaperItitle .layui-tab-title .layui-this{ background: #099082; color:#fff;}
+.lpaperItitle .layui-tab-title .layui-this:after{border:0 none; height:40px ; border-bottom:0 none;}
+.lpaperItitle .layui-tab-title{ border-bottom:0 none;}
+.LPaperInfo_txt{margin-top:30px; border-top:2px solid #f5f5f5; overflow: hidden;padding:25px 0;word-break: keep-all;}
+.LPaperInfo_infroMain span{padding-left:5px;}
+.LPaperInfo_InforLeft{color:#666565;}
+.LPaperInfo_InforLeft span{padding-right:15px;}
+
+.LQuestionInfor span{padding:15px; padding-right:50px;display: inline-block;}
+.LQuestionMain{margin:15px 0; border:1px solid #959595;padding-top:40px; overflow: hidden; box-sizing: border-box; position: relative;}
+.LQuestionMainTit{position:absolute; height:40px; left:0; top:0; width:100%; line-height: 40px; box-sizing: border-box;padding:0 20px; background: #099082; color:#fff}
+.LQMainList{width:100%; height:100%; overflow-y: auto;box-sizing: border-box; padding:15px 10px;max-height:550px;}
+.LQMainList ul li{padding:10px; position:relative; cursor: pointer;}
+.LQMainList ul li:nth-child(even){background: #f2f2f2;}
+.LQML_title h3{font-size:14px; font-weight: bold; line-height: 30px;}
+.LQML_txt{line-height: 24px;}
+.LQML_Close{position:absolute; right:10px; top:10px; line-height: 30px; color:#f00; font-weight: bold; font-size:24px; display:none ;}
+.LQMainList ul li:hover{background: #e3e3e3; border:1px dashed #959595;}
+.LQMainList ul li:hover .LQML_Close{display: block;}
+.LaddQ{width:100%; display:none; min-height:200px; background: #fff; padding:15px; box-sizing: border-box;}
+.LaddQTit{ background: #099082; border-left:2px solid #383c48;color:#fff;}
+.Ldemo-class{min-width:520px;}
+.Ldemo-class .layui-layer-title{background:#099082; color:#fff; border-left:3px solid #383c48; border-bottom: 0 none;}
+.Ldemo-class .layui-layer-btn .layui-layer-btn0{background: #383c48; min-width:95px; text-align: center;color:#fff; border:0 none; padding:3px;}
+.Ldemo-class .layui-layer-btn .layui-layer-btn1{background: #099082; min-width:95px;text-align: center;color:#fff; border:0 none; padding:3px;}
+.Ldemo-class .layui-layer-setwin{top:10px;}
+.Ldemo-class .layui-layer-setwin .layui-layer-close1{ background-position:-120px -35px; width:26px; height:26px;}
+.LaddMain{ overflow:hidden;padding:15px; box-sizing: border-box;border:1px solid #ececed; width:100%;}
+.LaddMain .layui-form-radio{min-width:140px; padding:8px 0;line-height:22px;}
+.Ldemo-class2{min-width:1000px;}
+.LaddMainEdit .layui-inline{width:50%; margin-top:15px; float:left;}
+.LaddMainTxt{ float:left;width:100%;}
+.LContentQm{ border:1px solid #D2D2D2}
+.LContentQm .LContentQtable{margin:0; width:100%;}
+.LContentQm .LContentQtable tr th{ background: #383c48; color:#fff; padding:8px 5px; text-align:left;}
+.LContentQm .LContentQtable tr td.LtablePdno,.LContentQm .LContentQtable tr th.LtablePdno{padding:8px 0;}
+.LContentQm .LContentQtable tr td{padding:5px; text-align:center; vertical-align:middle;}
+.LContentQm .LContentQtable tr td input[type="text"]{height:30px; line-height:30px;}
+.LimgUpInco{font-size:24px;color:#666; cursor: pointer;}
+.OneWidth_Main{ overflow:hidden}
+.LeditOpera img{margin-top:-5px;}
+.LeditOpera{text-align:left;}
+.OneWidth_Main li{float:left; margin-left:10px;padding:4px 5px; line-height:30px;}
+.OneWidth_Main li input{ vertical-align:middle; }
+.OneWidth_Main li a{color:#000;}
+.ledit_Select select{line-height: 38px; border:1px solid #e6e6e6;  height: 38px;
+  width: 100%;}
+  .LaddSelect{width:100%;line-height: 38px; border:1px solid #e6e6e6;  height: 38px;}
+.Ldemo-class .layui-layer-btn-r{padding-right:25px;}
+@media only screen and (max-width: 640px) {
+	.Ldemo-class{min-width:320px;}
+}
+@media only screen and (max-width: 1000px) {
+	.Ldemo-class2{min-width:640px;}
+}

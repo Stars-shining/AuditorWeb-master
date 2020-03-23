@@ -1,0 +1,44 @@
+.clearfix:after{content:".";display:block;height:0;clear:both;visibility:hidden}
+.clearfix{*+height:1%;}
+.ManageBg{background: #f1f1f1;}
+.BigTit{margin-top:15px;}
+.BigTit h2{font-size:24px; color:#383c48;}
+.BigTit P{font-size:12px; color:#94969c;}
+.ROnceM{ margin-top:0px; border:1px solid #e6e6e6; box-shadow: 0px 1px 3px rgba(0,0,0,0.3);background: #fff;}
+.ROnceM_Title{ background: #fbfbfb; line-height: 45px; padding: 0 15px; border-bottom: 1px solid #f2f2f2;}
+.ROnceM_Title h4{font-size:18px; color:#5f626c; font-weight: normal;}
+.ROnceM_Scd{box-sizing: border-box;padding:5px;}
+.ROnceM_input{margin-bottom:15px;}
+.ROnceM_Txt{width:200px;}
+.ROnceM_Btn{margin-left:120px;}
+.ROnceM_Btn .layui-btn{min-width:92px;}
+.ROnceMSeartxt{margin-left: 30px;}
+.ROnceMSeartxt span{padding:0 5px; color:#f00;}
+.TableBottom .layui-btn{min-width:84px;}
+.TableBottom .layui-btn-green{background: #3fcf7f;}
+.TableBottom .layui-btn-black{ background: #000;}
+.TableBottom .layui-btn-dakgreen{ background: #13c4a5;}
+
+.lpaperItitle .layui-tab-title .layui-this{ background: #099082; color:#fff;}
+.lpaperItitle .layui-tab-title .layui-this:after{border:0 none; height:40px ; border-bottom:0 none;}
+.lpaperItitle .layui-tab-title{ border-bottom:0 none;}
+.redColor{ color:#f00; padding-right:3px;}
+.ROnceM .layui-form-label{width:90px;}
+.ROnceM .layui-input-block{margin-left:120px;}
+.ROnceM_Sfz{width:525px;}
+.ROnceM_textarea{width:849px;}
+.layui-tab .Management.crightMain{padding-top:0px;}
+@media only screen and (max-width: 640px) {
+	.ROnceM_Txt,.ROnceM_Sfz{width:auto;}
+	}
+@media only screen and (max-width: 870px) {
+	.ROnceM_Sfz{width:auto;}
+}
+
+.ROnceM_Adress{width:18%;margin-left:2%;}
+.ROnceM_Adress .ROnceM_input p{margin:10px 0;}
+.ROnceM_date span{display: inline-block; float: left; margin:10px 30px 10px 0px;}
+.storeMain{width:97%; margin:5px auto;}
+.storeMain .ROnceM{ box-shadow: 0px 0px 0px rgba(0,0,0,0);}
+.TextCenter{text-align: center;}
+.ROnceM_date{padding: 10px 0; border-bottom: 1px solid #e6e6e6;}

@@ -1,0 +1,269 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>文件上传</title>
+
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">  
+    <link rel="stylesheet" href="css/layui.css"  media="all">
+    <link rel="stylesheet" href="css/common.css"  media="all">
+    <link rel="stylesheet" href="css/paperInfor.css"  media="all">
+
+    <script type="text/javascript" src="js/jquery_2-1-0_min.js"  charset="utf-8"></script>
+    <script src="js/html5shiv.js" type="text/javascript"></script>
+    <!-[if IE]>  
+    <script src="js/html5.js"></script>  
+    <![endif]–>
+    <script src="js/Common.js" type="text/javascript"></script>
+    <script src="js/layui.js" type="text/javascript" charset="utf-8"></script>
+    <script type="text/javascript">
+        layui.use(['layer', 'element'], function () {
+            var element = layui.element();
+            var layer = layui.layer;
+        });
+
+        $(function () {
+
+            LoadUploadWidth();
+
+            $("#btnUpload").click(function () {
+                uploadFile();
+            });
+
+            $("#btnClear").click(function () {
+                $("#fileField").val("");
+                $("#textfield").val("");
+                $("#fileName").val("");
+                $("#fileSize").text("");
+                $("#fileType").text("");
+            });
+
+            $("#btnClose").click(function () {
+                var index = parent.layer.getFrameIndex(window.name); //获取窗口索引
+                parent.layer.close(index);
+            });
+
+            window.onresize = function () {
+                LoadUploadWidth();
+            }
+
+            LoadFiles();
+        });
+
+        function LoadFiles() {
+            var typeID = getUrlParam("TypeID");
+            if (typeID == "" || typeID == null) {
+                typeID = "0";
+            }
+            var relatedID = getUrlParam("RelatedID");
+            if (relatedID == "" || relatedID == null) {
+                relatedID = "0";
+            }
+            $("#filelist").empty();
+            $("#filelist").append("<tr><td colspan=\"5\" class=\"No_Search\"><img src=\"images/loading.gif\"/>正在加载中，请耐心等待...</td></tr>");
+            var date = new Date();
+            var url = '../Logic/Upload.ashx';
+            $.getJSON(url, { type: "2", date: date, TypeID: typeID, RelatedID: relatedID }, function (data) {
+
+                $("#filelist").html("");
+                $.each(data, function (i, item) {
+                    var fileSize = item.FileSize;
+                    var id = item.ID;
+                    var str = "<tr>";
+                    if (fileSize >= 1024 * 1024)
+                        fileSize = (Math.round(fileSize * 100 / (1024 * 1024)) / 100).toString() + 'MB';
+                    else
+                        fileSize = (Math.round(fileSize * 100 / 1024) / 100).toString() + 'KB';
+
+                    str += ("<td>" + item.FileName + "</td>");
+                    str += ("<td>" + fileSize + "</td>");
+                    str += ("<td>" + item.FileTypeName + "</td>");
+                    str += ("<td>" + jsonDateTimeFormatWithoutSeconds(item.InputDate) + "</td>");
+                    str += ("<td>");
+                    str += ("<a href=\"javascript:void(0)\" onclick=\"DownloadFile('" + item.RelevantPath + "','" + id + "','" + item.FileType + "')\">下载</a>&nbsp;&nbsp;");
+                    //str += ("<a href=\"" + item.RelevantPath + "\" download=\"" + item.OriginalFileName + "\">下载</a>&nbsp;&nbsp;");
+                    str += ("<a href=\"javascript:void(0)\" onclick=\"DoDelete('" + id + "')\">删除</a>");
+                    if (item.FileType == "1") {
+                        str += ("&nbsp;&nbsp;<a href=\"javascript:void(0)\" onclick=\"PreViewPhoto('" + item.RelevantPath + "', '" + item.FileName + "')\">预览</a>");
+                    }
+                    str += "</td>";
+                    str += "</tr>";
+
+                    $("#filelist").append(str);
+                });
+
+            });
+        }
+
+        function DoDelete(id) {
+            DeleteFile(id, function () {
+                window.location = window.location.href;
+            });
+        }
+
+        function LoadUploadWidth() {
+            var txtWidth = $(".txt").width();
+            $(".file").width(txtWidth + 85);
+        }
+
+        function PreLoadFileInfo(obj) {
+
+            var file = obj.files[0];
+            
+            if (file) {
+                var fileSize = 0;
+                if (file.size > 1024 * 1024)
+                    fileSize = (Math.round(file.size * 100 / (1024 * 1024)) / 100).toString() + 'MB';
+                else
+                    fileSize = (Math.round(file.size * 100 / 1024) / 100).toString() + 'KB';
+                $("#textfield").val($(obj).val());
+                $("#fileinfo").show();
+
+                $("#fileName").val(file.name);
+                $("#fileSize").text(fileSize);
+
+                var date = new Date();
+                var url = '../Logic/Upload.ashx';
+                $.ajax({
+                    url: url,
+                    data: {
+                        Type: 3,
+                        Date: date,
+                        FileName: file.name
+                    },
+                    dataType: "text",
+                    type: "GET",
+                    traditional: true,
+                    success: function (data) {
+                        $("#fileType").text(data);
+                    }
+                });
+                
+            }
+        }
+
+        function uploadFile() {
+            $("#divProgress").show();
+            var fd = new FormData();
+            fd.append("type", "1");
+            fd.append("FileField", document.getElementById("fileField").files[0]);
+            fd.append("FileName", document.getElementById("fileName").value);
+            var xhr = new XMLHttpRequest();
+            xhr.upload.addEventListener("progress", uploadProgress, false);
+            xhr.addEventListener("load", uploadComplete, false);
+            xhr.addEventListener("error", uploadFailed, false);
+            xhr.addEventListener("abort", uploadCanceled, false);
+            xhr.open("POST", "../Logic/Upload.ashx");
+            xhr.send(fd);
+        }
+
+        function uploadProgress(evt) {
+            if (evt.lengthComputable) {
+                var percentComplete = Math.round(evt.loaded * 100 / evt.total);
+                layui.use('element', function () {
+                    var element = layui.element();
+                    element.progress("progressNumber", percentComplete + '%');
+                });
+            }
+            else {
+                document.getElementById('progressNumber').innerHTML = 'unable to compute';
+            }
+        }
+
+        function uploadComplete(evt) {
+            /* This event is raised when the server send back a response */
+            var docid = parseInt(evt.target.responseText);
+            if (docid > 0) {
+                layer.alert("上传成功！", function () {
+                    window.location = window.location.href;
+                });
+            }
+            
+        }
+
+        function uploadFailed(evt) {
+            layer.alert("There was an error attempting to upload the file.");
+        }
+
+        function uploadCanceled(evt) {
+            layer.alert("The upload has been canceled by the user or the browser dropped the connection.");
+        }
+
+    </script>
+
+<style type="text/css">
+.file-box{ position:relative;width:100%; padding-top:5px;}
+.txt{ height:28px; border:1px solid #cdcdcd; width:80%; text-indent:5px;}
+.txtFileName{ height:28px; line-height:28px; border:1px solid #cdcdcd; width:350px;}
+.file{ position:absolute; top:0; left:0; height:30px; filter:alpha(opacity:0); opacity: 0; width:80%; cursor: pointer; margin-top:5px;}
+.uploadbtn{ width: 80px; margin-bottom:3px;}
+a { text-decoration: underline;}
+</style>
+    
+</head>
+<body>
+
+<div class="LaddQ" id="winImageUpload">
+<form id="form1" enctype="multipart/form-data" method="post" action="">
+    <div class="file-box">
+        <input type='text' name='textfield' id='textfield' class='txt' />  
+        <button class="layui-btn layui-btn-primary layui-btn-small uploadbtn" id="btnBrowse">浏览文件...</button>
+        <input type="file" name="fileField" class="file" id="fileField" size="30" onchange="PreLoadFileInfo(this)" />
+        <input type="button" class="layui-btn layui-btn-small uploadbtn" id="btnUpload" value="上传文件"/>
+    </div>
+ </form>
+<blockquote class="layui-elem-quote layui-quote-nm" id="fileinfo">
+    <div class="layui-inline">
+    <label style="font-weight:800;">文件名称：</label>
+    </div>
+    <div class="layui-inline">
+    <input type="text" id="fileName" lay-verify="文件名称" autocomplete="off" class="layui-input txtFileName"/>
+    </div>
+    <div class="layui-inline">
+    <label style="font-weight:800; padding-left:30px;">文件大小：</label><span id="fileSize"></span>
+    <label style="font-weight:800; padding-left:30px;">文件类型：</label><span id="fileType"></span>
+    </div>
+    <div class="layui-inline" style="text-align: right; float:right;">
+    <button class="layui-btn layui-btn-primary layui-btn-small uploadbtn" id="btnClear">清除当前</button>
+    </div>
+    <div class="layui-progress layui-progress-big" lay-showPercent="yes" lay-filter="progressNumber" id="divProgress" style="margin-top:10px; display: none;">
+      <div class="layui-progress-bar layui-bg-red" lay-percent="0%"></div>
+    </div>
+</blockquote>
+
+<hr/>
+<div class="layui-form">
+  <table class="layui-table">
+    <colgroup>
+      <col width="350">
+      <col width="80">
+      <col width="80">
+      <col width="150">
+      <col width="120">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>文件名称</th>
+        <th>文件大小</th>
+        <th>类型</th>
+        <th>上传时间</th>
+        <th>操作</th>
+      </tr> 
+    </thead>
+    <tbody id="filelist">
+    </tbody>
+  </table>
+</div>
+    <div class="Txtright">
+    <button class="layui-btn layui-btn-small mt10 uploadbtn" id="btnClose">关 闭</button>
+    <input type="hidden" id="hfTypeID" />	 
+    <input type="hidden" id="hfRelatedID" />	 
+	</div> 
+</div>
+</body>
+</html>

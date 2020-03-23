@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>渠道核查在线管理平台</title>
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">  
+  <link rel="stylesheet" href="css/layui.css"  media="all">
+  <link rel="stylesheet" href="css/common.css"  media="all">
+  <link rel="stylesheet" href="css/Alert.css"  media="all">
+  <script type="text/javascript" src="js/jquery_2-1-0_min.js"  charset="utf-8"></script>
+  <script src="js/layui.js" charset="utf-8" type="text/javascript"></script>
+  <script src="js/Common.js" type="text/javascript"></script>
+<script type="text/javascript">
+    layui.use(['element', 'form', 'laydate'], function () {//Tab的切换功能，切换事件监听等，需要依赖element模块
+        var $ = layui.jquery
+  , element = layui.element()
+  , form = layui.form()
+ 	, laydate = layui.laydate;
+        var start = {
+            elem: '#calVisitFromTime',
+            format: 'YYYY/MM/DD hh:mm:ss',
+            min: laydate.now(), //设定最小日期为当前日期
+            max: '2099-06-16 23:59:59', //最大日期
+            istime: true,
+            istoday: false,
+            choose: function (datas) {
+                end.min = datas; //开始日选好后，重置结束日的最小日期
+                end.start = datas //将结束日的初始值设定为开始日
+            }
+        };
+        var end = {
+            elem: '#calVisitToTime',
+            format: 'YYYY/MM/DD hh:mm:ss',
+            min: laydate.now(),
+            max: '2099-06-16 23:59:59',
+            istime: true,
+            istoday: false,
+            choose: function (datas) {
+                start.max = datas; //结束日选好后，重置开始日的最大日期
+            }
+        };
+        document.getElementById('calVisitFromTime').onclick = function () {
+            start.elem = this;
+            laydate(start);
+        };
+        document.getElementById('calVisitToTime').onclick = function () {
+            end.elem = this
+            laydate(end);
+        };
+    });
+
+    $(function () {
+        $.ajaxSettings.async = false;
+
+        LoadFirst();
+
+        LoadData();
+
+        $.ajaxSettings.async = true;
+    });
+
+    function LoadFirst() {
+        var deliveryID = getUrlParam("deliveryID");
+        if (deliveryID == "" || deliveryID == null) {
+            return;
+        }
+        $("#hfDeliveryID").val(deliveryID);
+
+        var url = "../Logic/QuestionnaireDelivery.ashx";
+        var date = new Date();
+        $.getJSON(url, { type: "8", date: date, deliveryID: deliveryID }, function (data) {
+            var item = data[0];
+            $("#txtClientName").val(item.ClientName);
+            $("#txtPeriod").val(item.Period);
+            $("#txtQuestionnaireName").val(item.QuestionnaireName);
+            $("#txtAcceptUserName").val(item.UserName);
+            $("#hfCurrentQuestionnaireID").val(item.QuestionnaireID);
+        });
+    }
+
+    function LoadData() {
+        var resultID = getUrlParam("resultID");
+        if (resultID == "" || resultID == null) {
+            LoadPageStatus(1);
+            return;
+        }
+        LoadPageStatus(2);
+        $("#hfResultID").val(resultID);
+        var url = "../Logic/QuestionnaireDelivery.ashx";
+        var date = new Date();
+        $.getJSON(url, { type: "9", date: date, resultID: resultID }, function (data) {
+            var item = data[0];
+            $("#txtClientName").val(item.ClientName);
+            $("#txtPeriod").val(item.Period);
+            $("#txtQuestionnaireName").val(item.QuestionnaireName);
+
+            $("#calVisitFromTime").val(jsonDateTimeFormat(item.VisitBeginTime));
+            $("#calVisitToTime").val(jsonDateTimeFormat(item.VisitEndTime));
+            $("#txtDescription").val(item.Description);
+            $("#txtAcceptUserName").val(item.VisitUserName);
+            $("#txtVideoPath").val(item.VideoPath);
+            $("#txtVideoLength").val(item.VideoLength);
+
+            $("#hfCurrentQuestionnaireID").val(item.QuestionnaireID);
+            $("#hfCurrentQuestionID").val(item.CurrentQuestionID);
+
+            RedirectToNextQuestion(resultID, item.QuestionnaireID, item.CurrentQuestionID);
+        });
+    }
+
+    function LoadPageStatus(status) {
+        if (status == 1) {
+            //new
+            $("#btnEdit").hide();
+            $("#btnCancel").hide();
+            $("#btnSave").hide();
+        }
+        else if (status == 2) {
+            //view 
+            $("#btnEdit").show();
+            $("#btnCancel").hide();
+            $("#btnSave").hide();
+            $("#btnStart").text("继续录入");
+            $("#calVisitFromTime").attr("disabled", true);
+            $("#calVisitToTime").attr("disabled", true);
+            $("#txtVideoPath").attr("disabled", true);
+            $("#txtVideoLength").attr("disabled", true);
+            $("#txtDescription").attr("disabled", true);
+        }
+        else if (status == 3) {
+            //edit
+            $("#btnEdit").hide();
+            $("#btnCancel").show();
+            $("#btnSave").show();
+
+            $("#calVisitFromTime").attr("disabled", false);
+            $("#calVisitToTime").attr("disabled", false);
+            $("#txtVideoPath").attr("disabled", false);
+            $("#txtVideoLength").attr("disabled", false);
+            $("#txtDescription").attr("disabled", false);
+        }
+    }
+
+    function DoEdit() {
+        LoadPageStatus(3);
+    }
+
+    function DoStart() {
+        if (DoSave() == false) {
+            return;
+        }
+        GetToNextQuestion();
+    }
+
+    function GetToNextQuestion() {
+        var currentResultID = $("#hfResultID").val();
+        var currentQuestionnaireID = $("#hfCurrentQuestionnaireID").val();
+        var currentQuestionID = $("#hfCurrentQuestionID").val();
+        //merge into Common.js
+        RedirectToNextQuestion(currentResultID, currentQuestionnaireID, currentQuestionID);
+    }
+
+    function DoSave(bMsg) {
+        var visitFromTime = $("#calVisitFromTime").val();
+        var visitToTime = $("#calVisitToTime").val();
+        var description = $("#txtDescription").val();
+        var videoPath = $("#txtVideoPath").val();
+        var videoLength = $("#txtVideoLength").val();
+        if (visitFromTime == "" || visitToTime == "") {
+            layer.alert("开始录入前，请输入访问开始时间和结束时间.");
+            return false;
+        }
+
+        var deliveryID = $("#hfDeliveryID").val();
+        var resultID = $("#hfResultID").val();
+        var date = new Date();
+        var url = '../Logic/QuestionnaireDelivery.ashx';
+        $.ajax({
+            url: url,
+            data: {
+                Type: 10,
+                Date: date,
+                resultID: resultID,
+                deliveryID: deliveryID,
+                visitFromTime: visitFromTime,
+                visitToTime: visitToTime,
+                description: description,
+                videoPath: videoPath,
+                videoLength: videoLength
+            },
+            dataType: "json",
+            type: "POST",
+            traditional: true,
+            success: function (data) {
+                if (bMsg == 1) {
+                    layer.alert("保存成功.", function (index) {
+                        layer.close(index);
+                        LoadPageStatus(2);
+                    });
+                }
+            },
+            error: function () {
+            }
+        });
+    }
+
+</script>
+</head>
+<body>
+<div class="AlertM">
+	<div class="aqSpeed">
+    	<div class="aqSpeed_Tit">
+    	当前进度
+    	</div>
+    	<div class="aqSpeed_JdM">
+    		<div class="layui-progress layui-progress-big" lay-showpercent="true">
+	      	<div class="layui-progress-bar" lay-percent="0%"></div>
+	    	</div>
+	    	<div class="aqSpeed_JdTxt">
+	    		(0/100)
+	    	</div>
+    	</div>
+    	
+    </div>
+    <div class="aq_Main">    	
+    	<div class="aq_Enclosure">
+    		<fieldset class="layui-elem-field layui-field-title">
+				  <legend class="aq_legend">录入信息</legend>				 
+				</fieldset>
+				<div class="aq_EnList">
+					<div class="layui-inline Enter_input">
+			      <label class="layui-form-label">访问机构：</label>
+			      <div class="layui-input-block">
+			       <input type="text" name="title" lay-verify="title" autocomplete="off" class="layui-input" readonly='readonly' id="txtClientName"/>
+			      </div>
+			    </div>
+			    <div class="layui-inline Enter_input">
+			      <label class="layui-form-label">执行期次：</label>
+			      <div class="layui-input-block">
+			       <input type="text" name="title" lay-verify="title" autocomplete="off" class="layui-input" readonly='readonly' id="txtPeriod"/>
+			      </div>
+			    </div>
+			    <div class="layui-inline Enter_input">
+			      <label class="layui-form-label">执行问卷：</label>
+			      <div class="layui-input-block">
+			       <input type="text" name="title" lay-verify="title" autocomplete="off" class="layui-input" readonly='readonly' id="txtQuestionnaireName"/>
+			      </div>
+			    </div>
+			    <div class="layui-inline Enter_input">
+			      <label class="layui-form-label">执行人员：</label>
+			      <div class="layui-input-block">
+			       <input type="text" name="title" lay-verify="title" autocomplete="off" class="layui-input" readonly='readonly' id="txtAcceptUserName"/>
+			      </div>
+			    </div>
+			    <div class="layui-inline Enter_input">
+			      <label class="layui-form-label"><span class="requiredFields">*</span> 开始时间：</label>
+			      <div class="layui-input-block">
+			        <input type="text" name="title" lay-verify="title" autocomplete="off" placeholder="请输入访问开始时间" class="layui-input" id="calVisitFromTime"/>
+			       	<div class="InputDateInco">
+				    		<img src="images/InputDateInco.png" />
+				    	</div>
+			      </div>
+			    </div>
+			    <div class="layui-inline Enter_input">
+			      <label class="layui-form-label"><span class="requiredFields">*</span> 结束时间：</label>
+			      <div class="layui-input-block">
+			       <input type="text" name="title" lay-verify="title" autocomplete="off" placeholder="请输入访问结束时间" class="layui-input" id="calVisitToTime"/>
+			       <div class="InputDateInco">
+				    		<img src="images/InputDateInco.png" />
+				    	</div>
+			      </div>
+			    </div>
+
+                <div class="layui-inline Enter_input">
+			      <label class="layui-form-label">全程录像：</label>
+			      <div class="layui-input-block">
+			       <input type="text" name="title" lay-verify="title" autocomplete="off" placeholder="请输入网络路径或直接上传录像文件" class="layui-input" id="txtVideoPath"/>
+			       <div class="InputDateInco">
+                        <img src="images/video.png" alt="点击播放" style="cursor:pointer;"/>
+				    </div>
+			      </div>
+			    </div>
+                <div class="layui-inline Enter_input clearfix">
+			      <label class="layui-form-label fl">录像时长：</label>
+			      <div class="Input_Date fl" style="position: relative; padding-left:5px;">
+				    <input class="layui-input fl" value="00:00:00" id="txtVideoLength"/>
+					    <div class="InputDateInco">
+						    <img src="images/number.png" width="19px" height="17px"/>
+					    </div>
+				  </div>
+                <div class="fl" style="margin-left:15px;margin-top:3px;">
+                    <button class="layui-btn layui-btn-small layui-btn-normal layui-btn-radius" id="btnUpload">上传录像</button>
+                </div>
+			    </div>
+
+                <div class="layui-inline Enter_input" style="width:100%">
+			      <label class="layui-form-label">备注信息：</label>
+			      <div class="layui-input-block">
+			        <textarea id="txtDescription" class="layui-textarea"  rows="2"></textarea>
+			      </div>
+			    </div>
+
+				</div>
+				<div class="aq_Btn">
+        	        <button class="layui-btn aq-btn-pre" id="btnStart" onclick="DoStart();">开始录入</button>	
+                    <button class="layui-btn aq-btn-next" id="btnEdit" onclick="DoEdit();">编辑</button>
+                    <button class="layui-btn aq-btn-next" id="btnSave" onclick="DoSave(1);">保存</button>	
+                    <button class="layui-btn aq-btn-next" id="btnCancel" onclick="DoCancel();">取消</button>	
+                    <input id="hfDeliveryID" type="hidden" />
+                    <input id="hfResultID" type="hidden" />
+                    <input id="hfCurrentQuestionnaireID" type="hidden" />
+                    <input id="hfCurrentQuestionID" type="hidden" />
+				</div>
+    	</div>
+    </div>
+</div>
+</body>
+</html>

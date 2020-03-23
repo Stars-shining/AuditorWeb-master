@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>渠道核查在线管理平台--新建人员</title>
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">  
+  <link rel="stylesheet" href="css/layui.css"  media="all">
+  <link rel="stylesheet" href="css/common.css"  media="all">
+  <link rel="stylesheet" href="css/Personal.css"  media="all"/>
+  <script type="text/javascript" src="js/jquery_2-1-0_min.js"  charset="utf-8"></script>
+  <script src="js/Common.js" type="text/javascript"></script>
+  <script src="js/layui.js" type="text/javascript" charset="utf-8"></script>
+  <script type="text/javascript" language="javascript">
+
+        layui.use(['form', 'layedit', 'laydate'], function () {
+            var form = layui.form();
+        });
+
+        $(function () {
+
+            $.ajaxSettings.async = false;
+
+            var id = getUrlParam("id");
+            if (id != "" && id != null) {
+                $("#hfID").val(id);
+                $("#firstPassword").hide();
+            }
+
+            LoadAreaDivision();
+
+            if (userType == 3) {
+                //执行督导
+                $("#ddlUserRole").val(4);
+                $("#visitArea").show();
+            }
+            else if (userType == 5) {
+                //质控督导
+                $("#ddlUserRole").val(6);
+            }
+
+            if (userType != 8 && userType != 1 && userType != 7) {
+                $("#ddlUserRole").attr("disabled", true);
+            }
+
+            LoadAccountInfo();
+
+            LoadAreaStatus()
+
+            layui.use('form', function () {
+
+                var form = layui.form();
+
+                form.on('select(ddlAreaDivision)', function (data) {
+                    LoadProvince();
+                });
+
+                form.on('select(ddlProvince)', function (data) {
+                    LoadCity();
+                });
+
+                form.on('select(ddlCity)', function (data) {
+                    LoadDistrict();
+                });
+
+
+                form.on('select(ddlUserRole)', function (data) {
+                    LoadAreaStatus();
+                });
+            });
+
+            $.ajaxSettings.async = true;
+
+        });
+
+        function LoadAreaStatus() {
+            var selectedRoleID = $("#ddlUserRole").val();
+            if (selectedRoleID == 2) {
+                $("#visitArea").show();
+                $("#province").hide();
+                $("#city").hide();
+                $("#district").hide();
+            }
+            else if (selectedRoleID == 3) {
+                $("#visitArea").show();
+                $("#province").show();
+                $("#city").show();
+                $("#district").hide();
+            }
+            else if (selectedRoleID == 4) {
+                $("#visitArea").show();
+                $("#province").show();
+                $("#city").show();
+                $("#district").show();
+            }
+            else {
+                $("#visitArea").hide();
+            }
+        }
+
+        function LoadAreaDivision() {
+            var date = new Date();
+            var url = '../Logic/BusinessConfiguration.ashx';
+            $("#ddlAreaDivision").empty();
+            $("#ddlAreaDivision").append("<option value=\"-999\">全部</option>");
+            $.getJSON(url, { type: "2", date: date }, function (data) {
+                $.each(data, function (i, item) {
+                    $("#ddlAreaDivision").append("<option value=\"" + item.ID + "\">" + item.Name + "</option>");
+                });
+
+                var number = JSONLength(data);
+                if (number == 1) {
+                    $("#ddlAreaDivision").val(data[0].ID);
+                    $("#ddlAreaDivision").attr("disabled", true);
+                }
+
+                LoadProvince();
+            });
+        }
+
+        function LoadProvince() {
+            var areaID = $("#ddlAreaDivision").val();
+            var date = new Date();
+            var url = '../Logic/BusinessConfiguration.ashx';
+            $("#ddlProvince").empty();
+            $("#ddlProvince").append("<option value=\"-999\">全部</option>");
+            $.getJSON(url, { type: "3", date: date, areaID: areaID }, function (data) {
+                $.each(data, function (i, item) {
+                    $("#ddlProvince").append("<option value=\"" + item.Code + "\">" + item.Name + "</option>");
+                });
+
+                var number = JSONLength(data);
+                if (number == 1) {
+                    $("#ddlProvince").val(data[0].Code);
+                    $("#ddlProvince").attr("disabled", true);
+                }
+
+                LoadCity();
+            });
+        }
+
+        function LoadCity() {
+            var provinceCode = $("#ddlProvince").val();
+            var date = new Date();
+            var url = '../Logic/BusinessConfiguration.ashx';
+            $("#ddlCity").empty();
+            $("#ddlCity").append("<option value=\"-999\">全部</option>");
+            $.getJSON(url, { type: "4", date: date, provinceCode: provinceCode }, function (data) {
+                $.each(data, function (i, item) {
+                    $("#ddlCity").append("<option value=\"" + item.Code + "\">" + item.Name + "</option>");
+                });
+
+                layui.use('form', function () {
+                    var form = layui.form();
+                    form.render('select');
+                });
+
+                var number = JSONLength(data);
+                if (number == 1) {
+                    $("#ddlCity").val(data[0].Code);
+                    $("#ddlCity").attr("disabled", true);
+                }
+                else if (number > 1) {
+                    $("#ddlCity").attr("disabled", false);
+                }
+
+                LoadDistrict();
+            });
+        }
+
+        function LoadDistrict() {
+            var cityCode = $("#ddlCity").val();
+
+            var date = new Date();
+            var url = '../Logic/BusinessConfiguration.ashx';
+            $("#ddlDistrict").empty();
+            $("#ddlDistrict").append("<option value=\"-999\">不限</option>");
+
+            $.getJSON(url, { type: "5", date: date, cityCode: cityCode }, function (data) {
+                $.each(data, function (i, item) {
+                    $("#ddlDistrict").append("<option value=\"" + item.Code + "\">" + item.Name + "</option>");
+                });
+
+                var number = JSONLength(data);
+                if (number == 1) {
+                    $("#ddlDistrict").val(data[0].Code);
+                    $("#ddlDistrict").attr("disabled", true);
+                }
+
+                layui.use('form', function () {
+                    var form = layui.form();
+                    form.render('select');
+                });
+            });
+        }
+
+
+        function LoadAccountInfo() 
+        {
+            var id = $("#hfID").val();
+            var date = new Date();
+            var url = '../Logic/Users.ashx';
+            $.getJSON(url, { type: "7", date: date, id: id }, function (data) {
+                var udo = data;
+                if (udo.ID > 0) {
+                    $("#txtUserName").val(udo.UserName);
+                    $("#txtLoginName").val(udo.LoginName);
+                    $("#ddlUserRole").val(udo.RoleID);
+                    $("#txtEmail").val(udo.Email);
+                    $("#ddlGroup").val(udo.GroupID);
+                    $("#ddlStatus").val(udo.Status);
+
+                    $("#ddlAreaDivision").val(udo.AreaID);
+                    $("#ddlProvince").val(udo.Province);
+                    $("#ddlCity").val(udo.City);
+                    $("#ddlDistrict").val(udo.District);
+                }
+            });
+        }
+
+        function SaveAccount() 
+        {
+            var userName = $("#txtUserName").val();
+            var loginName = $("#txtLoginName").val();
+            var roleID = $("#ddlUserRole").val();
+            var email = $("#txtEmail").val();
+            var groupID = $("#ddlGroup").val();
+            var password = $("#txtPassword").val();
+            var statusID = $("#ddlStatus").val();
+
+            var areaID = $("#ddlAreaDivision").val();
+            var province = $("#ddlProvince").val();
+            var city = $("#ddlCity").val();
+            var district = $("#ddlDistrict").val();
+
+            var msgs = [];
+            if (userName == "") {
+                msgs.push("请输入用户姓名.");
+            }
+            if (loginName == "") {
+                msgs.push("请输入登录账号.");
+            }
+            if (roleID == "") {
+                msgs.push("请选择用户角色.");
+            }
+//             var myreg = /^([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+@([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+\.[a-zA-Z]{2,3}$/;
+//             if (!myreg.test(email)) {
+//                 msgs.push("请输入有效的电子邮箱.");
+//             }
+
+//             if (roleID == "2") {
+//                 if (areaID == "-999") {
+//                     msgs.push("请选择该用户的执行区域.");
+//                 }
+//             }
+//             if (roleID == "3" || roleID == "4") {
+//                 if (city == "-999") {
+//                     msgs.push("请选择该用户的执行城市.");
+//                 }
+//             }
+
+            if (msgs.length > 0) {
+                var message = "";
+                $.each(msgs, function (n, value) {
+                    message += ((n + 1) + "." + value);
+                    message += "<br/>";
+                });
+                layer.alert(message);
+                return false;
+            }
+            
+            var id = $("#hfID").val();
+            var date = new Date();
+            var url = '../Logic/Users.ashx';
+            $.ajax({
+                url: url,
+                data: {
+                    Type: 6,
+                    Date: date,
+                    id: id,
+                    userName: userName,
+                    loginName: loginName,
+                    roleID: roleID,
+                    email: email,
+                    groupID: groupID,
+                    password: password,
+                    statusID: statusID,
+                    areaID: areaID,
+                    province: province,
+                    city: city,
+                    district: district
+                },
+                dataType: "json",
+                type: "POST",
+                traditional: true,
+                success: function (data) {
+                    if (data == "-1") {
+                        layer.alert("保存失败，该登录账号系统中已存在，请输入新的登录账号！");
+                    }
+                    else {
+                        layer.alert("保存成功！", function () { parent.SearchUsers(); DoCancel(); });
+                    }
+                },
+                error: function () {
+                    layer.alert("保存失败！");
+                }
+            });
+            return true;
+        }
+
+        function DoCancel() {
+            var index = parent.layer.getFrameIndex(window.name);
+            parent.layer.close(index);
+        }
+
+  </script>
+</head>
+<body>
+<div class="layui-tab layui-tab-brief" lay-filter="demoTitle">
+    <div class="ROnceM_Scd">
+    	<form class="layui-form" action=""> 
+            <div class="layui-inline ROnceM_input">
+				<label class="layui-form-label"><span class="redColor">*</span>登录账号：</label>
+				<div class="layui-input-block  ROnceM_Txt">
+				<input id="txtLoginName" type="text" name="title" lay-verify="title" autocomplete="off" placeholder="" class="layui-input"/>
+				</div>
+			</div>	
+            <div class="layui-inline ROnceM_input">
+			    <label class="layui-form-label"><span class="redColor">*</span>用户姓名：</label>
+				<div class="layui-input-block  ROnceM_Txt">
+					<input id="txtUserName" type="text" name="title" lay-verify="title" autocomplete="off" placeholder="" class="layui-input"/>
+				</div>
+			</div>
+            <div class="layui-inline ROnceM_input">
+			    <label class="layui-form-label"><span class="redColor">*</span>角色类型：</label>
+				<div class="layui-input-block ROnceM_Txt">
+					<select id="ddlUserRole" lay-filter="ddlUserRole">
+					    <option value="">请选择</option>
+                        <optgroup label="管理人员">
+                            <option value="1">总控</option>
+                            <option value="2">区控</option>
+                            <option value="7">研究员</option>
+                            <option value="10">质管员</option>
+                            <option value="8">系统管理员</option>
+                        </optgroup>
+                        <optgroup label="执行人员">
+                            <option value="3">执行督导</option>
+                            <option value="4">访问员</option>
+                        </optgroup>
+                        <optgroup label="审核人员">
+                            <option value="5">质控督导</option>
+                            <option value="6">质控员</option>
+                        </optgroup>
+                        <optgroup label="客户">
+                            <option value="9">客户</option>
+                        </optgroup>
+					</select>
+				</div>
+			</div>		
+            <div class="layui-inline ROnceM_input">
+			    <label class="layui-form-label">电子邮箱：</label>
+				<div class="layui-input-block  ROnceM_Txt">
+					<input id="txtEmail" type="text" name="email" lay-verify="email" autocomplete="off" placeholder="例如：abc@abc.com" class="layui-input"/>
+				</div>
+			</div>	
+
+			<div class="layui-inline ROnceM_input">
+				<label class="layui-form-label">所属组别：</label>
+				<div class="layui-input-block  ROnceM_Txt">
+					<select id="ddlGroup" lay-filter="ddlGroup">
+					    <option value="">请选择</option>
+					</select>
+				</div>
+			</div>
+			<div class="layui-inline ROnceM_input" id="firstPassword">
+			    <label class="layui-form-label">初始密码：</label>
+				<div class="layui-input-block  ROnceM_Txt">
+					<input id="txtPassword" type="text" name="title" lay-verify="title" autocomplete="off" class="layui-input" value="1111"/>
+				</div>
+			</div>
+			    	
+			<div class="layui-inline ROnceM_input">
+				<label class="layui-form-label"><span class="redColor">*</span>账号状态：</label>
+				<div class="layui-input-block  ROnceM_Txt">
+					<select id="ddlStatus" lay-filter="ddlStatus">
+					<option value="0">正常</option>
+					<option value="1">停用</option>						        
+                    <option value="2">删除</option>						        
+					</select>
+				</div>
+			</div>
+			</form>
+    </div>
+    
+    <div class="ROnceM_Scd allhide" id="visitArea">
+    	<form class="layui-form" action=""> 
+    <fieldset class="layui-elem-field">
+  <legend style="font-size:14px;">执行区域</legend>
+  <div class="layui-field-box" style="padding: 10px 0px;">
+
+  <div class="layui-inline ROnceM_input">
+	    <label class="layui-form-label">区域：</label>
+	    <div class="layui-input-block">
+		    <select id="ddlAreaDivision" lay-filter="ddlAreaDivision">
+		    <option value="-999">全部</option>
+		    </select>
+	    </div>
+    </div>
+    <div class="layui-inline ROnceM_input" id="province">
+		    <label class="layui-form-label">省份：</label>
+		    <div class="layui-input-block">
+			    <select id="ddlProvince" lay-filter="ddlProvince">
+			    <option value="-999">全部</option>
+			    </select>
+		    </div>
+    </div>
+    <div class="layui-inline ROnceM_input" id="city">
+		    <label class="layui-form-label">城市：</label>
+		    <div class="layui-input-block">
+			    <select id="ddlCity" lay-filter="ddlCity">
+			    <option value="-999">全部</option>
+			    </select>
+		    </div>
+    </div>
+    <div class="layui-inline ROnceM_input" id="district">
+	    <label class="layui-form-label">区县：</label>
+	    <div class="layui-input-block">
+		    <select id="ddlDistrict" lay-filter="ddlDistrict">
+		    <option value="-999">不限</option>
+		    </select>
+	    </div>
+    </div> 	
+
+  </div>
+</fieldset>
+</form>
+</div>
+    <div class="clearfix TableBottom mt10">
+        <div class="TextCenter">                
+            <button class="layui-btn layui-btn-dakgreen" onclick="DoCancel();">返回</button>
+            <button class="layui-btn layui-btn-normal" onclick="SaveAccount();">保存</button>   
+            <input type="hidden" id="hfID" />            
+        </div>
+    </div>
+</div>
+</body>
+</html>

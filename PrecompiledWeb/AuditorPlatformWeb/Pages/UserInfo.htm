@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>渠道核查在线管理平台--新建人员</title>
+<link rel="shortcut icon" href="favicon.ico"/>
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">  
+  <link rel="stylesheet" href="css/layui.css"  media="all">
+  <link rel="stylesheet" href="css/common.css"  media="all">
+  <link rel="stylesheet" href="css/upload.css"  media="all">
+  <link rel="stylesheet" href="css/Personal.css"  media="all"/>
+  <script type="text/javascript" src="js/jquery_2-1-0_min.js"  charset="utf-8"></script>
+  <script src="js/Common.js" type="text/javascript"></script>
+  <script src="js/layui.js" type="text/javascript" charset="utf-8"></script>
+
+<script type="text/javascript" language="javascript">
+    layui.use('upload', function () {
+        layui.upload({
+            url: '../Logic/Upload.ashx?type=13'
+            , elem: '#fileUserPhoto' //指定原始元素，默认直接查找class="layui-upload-file"
+            , method: 'post' //上传接口的http类型
+            , title: '更换头像'
+            , success: function (data) {
+                document.getElementById("imgUserPhoto").src = data.src;
+                $("#hfPhotoPath").val(data.src);
+            }
+        });
+    });
+
+
+    layui.use(['form', 'laydate'], function () {
+        var form = layui.form()
+            , laydate = layui.laydate;
+
+        var start = {
+            istoday: false
+        };
+
+        document.getElementById('calBirthDate').onclick = function () {
+            start.elem = this;
+            laydate(start);
+        }
+        document.getElementById('calSigningDate').onclick = function () {
+            start.elem = this;
+            laydate(start);
+        }
+        document.getElementById('calTrainingDate').onclick = function () {
+            start.elem = this;
+            laydate(start);
+        }
+    });
+  
+
+
+
+    $(function () {
+        $.ajaxSettings.async = false;
+        
+        InitDDLValues();
+
+        var id = getUrlParam("id");
+        if (id == "" || id == null) {
+            return;
+        }
+        $("#hfID").val(id);
+
+        LoadPageStatus(1);
+
+        LoadData();
+
+        $.ajaxSettings.async = true;
+    });
+
+    function InitDDLValues() {
+        GetBusinessConfigValues($("#ddlSex"), "Sex");
+        GetBusinessConfigValues($("#ddlDegree"), "Degree");
+        GetBusinessConfigValues($("#ddlHousehold"), "HouseHold");
+        GetBusinessConfigValues($("#ddlProtocolType"), "ProtocolType");
+        GetBusinessConfigValues($("#ddlRegion"), "Region");
+    }
+
+    function DoSave() {
+        var id = $("#hfID").val();
+        var name = $("#txtName").val();
+        var sex = $("#ddlSex").val();
+        var degree = $("#ddlDegree").val();
+        var birthdate = $("#calBirthDate").val();
+        var region = $("#ddlRegion").val();
+        var household = $("#ddlHousehold").val();
+        var householdAddress = $("#txtHouseholdAddress").val();
+        var address = $("#txtResidentialAddress").val();
+        var idcardNumber = $("#txtIDCardNumber").val();
+        var postcode = $("#txtPostcode").val();
+        var department = $("#txtDepartment").val();
+        var position = $("#txtPosition").val();
+        var telephone = $("#txtTelephone").val();
+        var mobilephone = $("#txtMobilephone").val();
+        var bHasExperience = $("#radHasExperience").prop("checked");
+        var bHasProtocol = $("#radHasProtocol").prop("checked");
+        var protocolType = $("#ddlProtocolType").val();
+        var entryTime = $("#calSigningDate").val();
+        var trainingDate = $("#calTrainingDate").val();
+        var trainingScore = $("#txtTrainingScore").val();
+        var trainingComment = $("#txtTrainingComment").val();
+
+        var openingBankName = $("#txtOpenningBankName").val();
+        var bankAccount = $("#txtBankAccountNumber").val();
+
+        var photoPath = $("#hfPhotoPath").val();
+
+        var date = new Date();
+        var url = '../Logic/Users.ashx';
+        $.ajax({
+            url: url,
+            data: {
+                Type: 14,
+                Date: date,
+                id: id,
+                name: name,
+                sex: sex,
+                degree: degree,
+                birthdate: birthdate,
+                region: region,
+                household: household,
+                householdAddress: householdAddress,
+                address: address,
+                idcardNumber: idcardNumber,
+                postcode: postcode,
+                department: department,
+                position: position,
+                telephone: telephone,
+                mobilephone: mobilephone,
+                bHasExperience: bHasExperience,
+                bHasProtocol: bHasProtocol,
+                protocolType: protocolType,
+                entryTime: entryTime,
+                trainingDate: trainingDate,
+                trainingScore: trainingScore,
+                trainingComment: trainingComment,
+                openingBankName: openingBankName,
+                bankAccount: bankAccount,
+                photoPath: photoPath
+            },
+            dataType: "json",
+            type: "POST",
+            traditional: true,
+            success: function (data) {
+                layer.alert("保存成功！", function (index) {
+                    $("#btnCancel").click();
+                    layer.close(index);
+
+                });
+            },
+            error: function () {
+                layer.alert("保存失败！");
+            }
+        });
+    }
+
+    function LoadData() {
+        var id = $("#hfID").val();
+        var date = new Date();
+        var url = '../Logic/Users.ashx';
+        $.getJSON(url, { type: "7", date: date, id: id }, function (data) {
+            var udo = data;
+            if (udo.ID > 0) {
+                $("#txtName").val(udo.UserName);
+                $("#ddlSex").val(udo.Sex);
+                $("#ddlDegree").val(udo.Degree);
+
+                $("#calBirthDate").val(jsonDateFormat(udo.DateOfBirth));
+                $("#ddlRegion").val(udo.Region);
+                $("#ddlHousehold").val(udo.HouseHoldRegistration);
+                $("#txtHouseholdAddress").val(udo.HouseHoldAddress);
+                $("#txtResidentialAddress").val(udo.Address);
+                $("#txtIDCardNumber").val(udo.IDCardNumber);
+                $("#txtPostcode").val(udo.Postcode);
+                $("#txtDepartment").val(udo.Department);
+                $("#txtPosition").val(udo.Position);
+                $("#txtTelephone").val(udo.Telephone);
+                $("#txtMobilephone").val(udo.MobilePhone);
+
+                if (udo.BHasExperience == true) {
+                    $("#radHasExperience").prop("checked", true);
+                    $("#radNoExperience").prop("checked", false);
+                }
+                else {
+                    $("#radHasExperience").prop("checked", false);
+                    $("#radNoExperience").prop("checked", true);
+                }
+
+                if (udo.BHasProtocol == true) {
+                    $("#radHasProtocol").prop("checked", true);
+                    $("#radNoProtocol").prop("checked", false);
+                }
+                else {
+                    $("#radHasProtocol").prop("checked", false);
+                    $("#radNoProtocol").prop("checked", true);
+                }
+                $("#ddlProtocolType").val(udo.ProtocolType);
+                $("#calSigningDate").val(jsonDateFormat(udo.EntryTime));
+                $("#calTrainingDate").val(jsonDateFormat(udo.TrainingTime));
+                $("#txtTrainingScore").val(udo.TrainingScore);
+                $("#txtTrainingComment").val(udo.TrainingComment);
+
+                $("#txtOpenningBankName").val(udo.OpeningBankName);
+                $("#txtBankAccountNumber").val(udo.BankAccount);
+                if (udo.PhotoPath != null && udo.PhotoPath != "") {
+                    document.getElementById("imgUserPhoto").src = udo.PhotoPath;
+                    $("#hfPhotoPath").val(udo.PhotoPath);
+                }
+            }
+        });
+    }
+
+    function DoEdit() {
+        LoadPageStatus(2);
+    }
+
+    function DoCancel() {
+        LoadPageStatus(1);
+    }
+
+    function DoBack() {
+        window.location = "EmployeeList.htm";
+    }
+
+    function LoadPageStatus(status) {
+        //1 - view saved status
+        //2 - editing status
+        if (userType == 1 || userType == 7 || userType == 8) {
+            if(status == 1){
+                 $("#btnEdit").show();
+                 $("#btnSave").hide();
+                 $("#btnCancel").hide();
+
+                 $("input").attr("disabled", true);
+                 $("select").attr("disabled", true);
+                 $(".site-demo-upbar").hide();
+            }
+            else{
+                $("#btnEdit").hide();
+                $("#btnSave").show();
+                $("#btnCancel").show();
+
+                $("input").attr("disabled", false);
+                $("select").attr("disabled", false);
+                $(".site-demo-upbar").show();
+            }
+        }
+        else {
+            $("#btnEdit").hide();
+            $("#btnSave").hide();
+            $("#btnCancel").hide();
+
+            $("input").attr("disabled", true);
+            $("select").attr("disabled", true);
+            $(".site-demo-upbar").hide();
+        }
+
+        layui.use('form', function () {
+            var form = layui.form();
+            form.render();
+        });
+    }
+</script>
+
+</head>
+<body class="ManageBg">
+    <!--母版页-->
+    <div id="CommonTop"></div>
+    <div id="CommonLeft"></div>
+	<script type="text/javascript">
+	    $(function () {
+	        $("#CommonTop").load("CommonTop.htm");
+	        LoadCurrentLeft();
+	    });
+    </script>
+<!--内容页-->
+<div class="layui-tab layui-tab-brief" lay-filter="demoTitle">	
+	<!---------------------------------------以下每个页面更换-------------------------------------------->
+  <div class="layui-body layui-tab-content crightMain Management">
+    	<div class="crightMainTitle">
+				<div class="layui-tab lpaperItitle">
+				  <ul class="layui-tab-title">
+				    <li><a href="#">人员管理</a></li>
+				    <li class="layui-this">人员信息</li>			    	    
+				  </ul>
+				</div>
+			</div>
+    	<div class="ROnceM">
+    		<div class="ROnceM_Title">
+    			 <h4>基本信息</h4>
+    		</div>
+    		<div class="ROnceM_Scd">
+    			<form class="layui-form" action="">  
+                <div class="ROnceM_input" style="padding-top:10px; padding-left: 30px; float: left;">  
+                    <img id="imgUserPhoto" src="images/HeadLogo.png" style="max-width: 200px; max-height: 200px;"/>
+                    <div class="site-demo-upbar">
+                        <input type="file" name="file" class="layui-upload-file" id="fileUserPhoto" />
+                    </div>
+                </div>
+                    <div class="layui-inline ROnceM_input">
+				      <label class="layui-form-label">姓名：</label>
+				      <div class="layui-input-block  ROnceM_Txt">
+				       <input id="txtName" type="text" name="title" lay-verify="title" autocomplete="off" placeholder="" class="layui-input" />
+				      </div>
+				    </div>	
+                    <div class="layui-inline ROnceM_input">
+			    	 	<label class="layui-form-label">性别：</label>
+					    <div class="layui-input-block  ROnceM_Txt">
+					      <select id="ddlSex" lay-filter="ddlSex">
+					        <option value="">请选择</option>
+					      </select>
+					    </div>
+			    	</div>
+			        <div class="layui-inline ROnceM_input">
+			    	 	<label class="layui-form-label">学历：</label>
+					    <div class="layui-input-block  ROnceM_Txt">
+					      <select id="ddlDegree" lay-filter="ddlDegree">
+					        <option value="">请选择</option>
+					      </select>
+					    </div>
+			    	</div>
+			    	<div class="layui-inline ROnceM_input">
+			    	 	<label class="layui-form-label">出生日期：</label>
+					    <div class="layui-input-block  ROnceM_Txt">
+					      <input type="text" class="layui-input" placeholder="选择出生日期" id="calBirthDate"/>
+				      	    <div class="InputDateInco">
+					    		<img src="images/InputDateInco.png" />
+					    	</div>
+					    </div>
+			    	</div>		
+			    	<div class="layui-inline ROnceM_input">
+				      <label class="layui-form-label">民族：</label>
+				      <div class="layui-input-block  ROnceM_Txt">
+				       <select id="ddlRegion" lay-filter="ddlRegion">
+					        <option value="">请选择</option>
+					      </select>
+				      </div>
+				    </div>					
+					  
+					<div class="layui-inline ROnceM_input">
+			    	 	<label class="layui-form-label">户口性质：</label>
+					    <div class="layui-input-block  ROnceM_Txt">
+					      <select id="ddlHousehold" lay-filter="ddlHousehold">
+					        <option value="">请选择</option>
+					      </select>
+					    </div>
+			    	</div>
+					  
+                    <div class="layui-inline ROnceM_input">
+					      <label class="layui-form-label">户口地址：</label>
+					      <div class="layui-input-block  ROnceM_Txt ROnceM_Sfz">
+					       <input id="txtHouseholdAddress" type="text" autocomplete="off" placeholder="" class="layui-input"/>
+					      </div>
+					    </div>
+						  <div class="layui-inline ROnceM_input">
+					      <label class="layui-form-label">常住地址：</label>
+					      <div class="layui-input-block  ROnceM_Txt ROnceM_Sfz">
+					       <input id="txtResidentialAddress" type="text" autocomplete="off" placeholder="" class="layui-input"/>
+					      </div>
+					    </div>
+                        <div class="layui-inline ROnceM_input">
+				      <label class="layui-form-label">身份证号码：</label>
+				      <div class="layui-input-block  ROnceM_Txt ROnceM_Sfz">
+				       <input id="txtIDCardNumber" type="text" autocomplete="off" placeholder="请输入18位身份证号码" class="layui-input"/>
+				      </div>
+				    </div>
+                    <div class="layui-inline ROnceM_input">
+					      <label class="layui-form-label">邮政编码：</label>
+					      <div class="layui-input-block  ROnceM_Txt">
+					       <input id="txtPostcode" type="text" autocomplete="off" placeholder="" class="layui-input" />
+					      </div>
+					    </div>
+					<div class="layui-inline ROnceM_input">
+					      <label class="layui-form-label">所属部门：</label>
+					      <div class="layui-input-block  ROnceM_Txt">
+					       <input id="txtDepartment" type="text" autocomplete="off" placeholder="" class="layui-input" />
+					      </div>
+					    </div>
+					    <div class="layui-inline ROnceM_input">
+					      <label class="layui-form-label">公司职位：</label>
+					      <div class="layui-input-block  ROnceM_Txt">
+					       <input type="text" id="txtPosition" autocomplete="off" placeholder="" class="layui-input"/>
+					      </div>
+					    </div>
+					    <div class="layui-inline ROnceM_input">
+					      <label class="layui-form-label">固定电话：</label>
+					      <div class="layui-input-block  ROnceM_Txt">
+					       <input id="txtTelephone" type="text" autocomplete="off" placeholder="" class="layui-input"/>
+					      </div>
+					    </div>
+					    <div class="layui-inline ROnceM_input">
+					      <label class="layui-form-label">手机号码：</label>
+					      <div class="layui-input-block  ROnceM_Txt">
+					       <input id="txtMobilephone" type="text" autocomplete="off" placeholder="" class="layui-input"/>
+					      </div>
+					    </div>
+				   </form>
+    		</div>
+    	</div>
+    	<div class="ROnceM">
+    		<div class="ROnceM_Title">
+    			 <h4>经验资质</h4>
+    		</div>
+    		<div class="ROnceM_Scd">
+    			<form class="layui-form" action="">     				
+    				<div class="layui-inline ROnceM_input">
+				      <label class="layui-form-label">有无经验：</label>
+				     <div class="layui-input-block ROnceM_Txt">
+					      <input id="radHasExperience" type="radio" name="jy" value="有" title="有"/>
+					      <input id="radNoExperience" type="radio" name="jy" value="无" title="无"/>				    
+					    </div>
+				    </div>				    	    	
+			    	<div class="layui-inline ROnceM_input">
+			    	 	<label class="layui-form-label">有无协议：</label>
+					    <div class="layui-input-block ROnceM_Txt">
+					      <input id="radHasProtocol" type="radio" name="card" value="有" title="有"/>
+					      <input id="radNoProtocol" type="radio" name="card" value="无" title="无"/>				    
+					    </div>
+			    	</div>
+			    	<div class="layui-inline ROnceM_input">
+			    	 	<label class="layui-form-label">协议类型：</label>
+					    <div class="layui-input-block  ROnceM_Txt">
+					      <select id="ddlProtocolType" lay-filter="ddlProtocolType">
+					        <option value="">请选择</option>
+					      </select>
+					    </div>
+			    	</div>
+			    	<div class="layui-inline ROnceM_input">
+			    	 	<label class="layui-form-label">入职日期：</label>
+					    <div class="layui-input-block  ROnceM_Txt">
+					      <input type="text" class="layui-input" placeholder="选择入职日期" id="calSigningDate" />
+				      	    <div class="InputDateInco">
+					    		<img src="images/InputDateInco.png" />
+					    	</div>
+					    </div>
+			    	</div>
+                    <div class="layui-inline ROnceM_input">
+			    	 	<label class="layui-form-label">培训日期：</label>
+					    <div class="layui-input-block  ROnceM_Txt">
+					      <input type="text" class="layui-input" placeholder="选择培训日期" id="calTrainingDate" />
+				      	    <div class="InputDateInco">
+					    		<img src="images/InputDateInco.png" />
+					    	</div>
+					    </div>
+			    	</div>	
+			    	<div class="layui-inline ROnceM_input">
+				      <label class="layui-form-label">培训得分：</label>
+				      <div class="layui-input-block  ROnceM_Txt">
+				       	<input class="layui-input" value="-" id="txtTrainingScore" disabled />
+					      	<div class="InputDateInco">
+						    	<img src="images/number.png" width="19px" height="17px"/>
+						    </div>
+				      </div>
+				    </div>					
+					  <div class="layui-inline ROnceM_input">
+				      <label class="layui-form-label">培训评语：</label>
+				      <div class="layui-input-block  ROnceM_Txt ROnceM_Sfz">
+				          <input type="text" id="txtTrainingComment" autocomplete="off" placeholder="" class="layui-input" />
+				      </div>
+				    </div>
+				   </form>
+    		</div>
+    	</div>
+    	<div class="ROnceM">
+    		<div class="ROnceM_Title">
+    			 <h4>个人银行信息</h4>
+    		</div>
+    		<div class="ROnceM_Scd">
+    			<form class="layui-form" action="">     				
+				    <div class="layui-inline ROnceM_input">
+			    	 	<label class="layui-form-label">开户行名称：</label>
+					    <div class="layui-input-block  ROnceM_Txt">
+					       <input type="text" id="txtOpenningBankName" autocomplete="off" placeholder="" class="layui-input" />
+					    </div>
+			    	</div>
+                    <div class="layui-inline ROnceM_input">
+				      <label class="layui-form-label">银行账号：</label>
+				      <div class="layui-input-block ROnceM_Txt ROnceM_Sfz">
+				       <input type="text" id="txtBankAccountNumber" autocomplete="off" placeholder="" class="layui-input" />
+				      </div>				      
+				    </div>
+				   </form>
+    		</div>
+    	</div>
+        <div class="clearfix TableBottom mt10">
+            <div class="Txtright">                
+                <button class="layui-btn layui-btn-dakgreen" onclick="DoBack()">返回</button>
+                <button class="layui-btn layui-btn-green" onclick="DoCancel()" id="btnCancel">取消</button>								
+                <button class="layui-btn layui-btn-green" onclick="DoEdit()" id="btnEdit">编辑</button>								
+                <button class="layui-btn layui-btn-normal" onclick="DoSave()" id="btnSave">保存</button>     
+                <input type="hidden" id="hfID" />
+                <input type="hidden" id="hfPhotoPath" />         
+            </div>
+        </div>
+	</div>
+</div>
+</body>
+</html>

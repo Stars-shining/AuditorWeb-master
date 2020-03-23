@@ -1,0 +1,63 @@
+﻿<script type="text/javascript">
+
+    $(function () {
+
+        LoadCurrentProjectName();
+        
+    });
+
+    function LoadCurrentProjectName() {
+        var date = new Date();
+        var url = '../Logic/Project.ashx';
+        $.ajax({
+            type: "get",
+            url: url,
+            data: { "type": "7", "date": date },
+            success: function (data) {
+                if (data != "") {
+                    $("#lblProjectName").text("当前项目：" + data);
+                    if (userType == 9) {
+                        $(".quitProject").hide();
+                    }
+                }
+                else {
+                    //redirect to login page
+                    //window.location.href = "login.htm";
+                    $(".right_titleM").hide();
+                }
+            }
+        });
+    }
+    function QuitProject() {
+        layer.confirm('您确定要退出该项目吗？', {
+            btn: ['确定', '取消']
+        }, function (index) {
+            layer.close(index);
+            var date = new Date();
+            var url = '../Logic/Project.ashx';
+            $.ajax({
+                url: url,
+                data: {
+                    Type: 8,
+                    Date: date
+                },
+                dataType: "json",
+                type: "POST",
+                traditional: true,
+                success: function (data) {
+                    window.location.href = "ProjectList.htm";
+                },
+                error: function () {
+                }
+            });
+        });
+    }
+</script>
+<div class="left_titleM">
+	<div class="right_firstTit">
+        <a href="ProjectIndex.htm">
+            <span class="fl" id="lblProjectName"></span>&nbsp;
+        </a>
+        <a href="javascript:void(0)" class="quitProject fr" onclick="QuitProject()">退出项目</a>
+	</div>
+</div>  

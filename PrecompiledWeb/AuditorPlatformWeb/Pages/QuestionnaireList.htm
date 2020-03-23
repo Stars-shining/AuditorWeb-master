@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>渠道核查在线管理平台</title>
+<link rel="shortcut icon" href="favicon.ico"/>
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">  
+  <link rel="stylesheet" href="css/layui.css"  media="all">
+  <link rel="stylesheet" href="css/common.css"  media="all">
+  <link href="css/Projectnfo.css" rel="stylesheet" type="text/css" media="all"/>
+
+  <script type="text/javascript" src="js/jquery_2-1-0_min.js"  charset="utf-8"></script>
+  <script src="js/Common.js" type="text/javascript"></script>
+  <script src="js/layui.js" type="text/javascript" charset="utf-8"></script>
+
+  <script type="text/javascript" language="javascript">
+
+      layui.use('element', function () {
+          var element = layui.element(); //导航的hover效果、二级菜单等功能，需要依赖element模块
+
+          //监听导航点击
+          element.on('nav(demo)', function (elem) {
+              //console.log(elem)
+              layer.msg(elem.text());
+          });
+
+      });
+
+      layui.use(['form', 'layedit', 'laydate'], function () {
+          var form = layui.form()
+  , layer = layui.layer
+  , layedit = layui.layedit
+  , laydate = layui.laydate;
+
+          var start = {
+              istoday: false
+    , choose: function (datas) {
+        end.min = datas; //开始日选好后，重置结束日的最小日期
+        end.start = datas //将结束日的初始值设定为开始日
+    }
+          };
+
+          var end = {
+              istoday: false
+    , choose: function (datas) {
+        start.max = datas; //结束日选好后，重置开始日的最大日期
+    }
+          };
+          document.getElementById('calFromDate').onclick = function () {
+              start.elem = this;
+              laydate(start);
+          }
+          document.getElementById('calToDate').onclick = function () {
+              end.elem = this
+              laydate(end);
+          }
+          document.getElementById('fromicon').onclick = function () {
+              start.elem = document.getElementById('calFromDate');
+              laydate(start);
+          }
+          document.getElementById('toicon').onclick = function () {
+              end.elem = document.getElementById('calToDate');
+              laydate(end);
+          }
+      });
+  
+</script>
+
+  <script type="text/javascript" language="javascript">
+
+      $(function () {
+
+          $("#btnSearch").click(function () {
+              Search();
+          });
+          $("#btnNew").click(function () {
+              AddNewQuestionnaire();
+          });
+
+          if (userType != 1 && userType != 7 && userType != 8) {
+              $("#btnNew").hide();
+          }
+
+          Search();
+      });
+
+
+      function Search() {
+          var name = $("#txtName").val();
+          var statusID = $("#ddlStatus").val();
+          var fromdate = $("#calFromDate").val();
+          var todate = $("#calToDate").val();
+
+          var pageSize = 100;
+
+          $("#questionnaireList").empty();
+          $("#questionnaireList").append("<tr><td colspan=\"5\" class=\"No_Search\"><img src=\"images/loading.gif\"/>正在后台处理中，请耐心等待...</td></tr>");
+          var date = new Date();
+          var url = '../Logic/Questionnaire.ashx';
+          $.getJSON(url, { type: "1", date: date, name: name, fromdate: fromdate, todate: todate, statusID: statusID }, function (data) {
+              BindData(data, pageSize, 1);
+          });
+
+      }
+
+      function BindData(data, pageSize, pageIndex) {
+          $("#questionnaireList").html("");
+          var perPage = pageSize;
+          var index = 0;
+          $.each(data, function (i, item) {
+              index = i + 1;
+              var currentIndex = parseInt(i / perPage + 1);
+              if (currentIndex == pageIndex) {
+                  var str = "<tr onclick=\"ViewDetails('" + item.ID + "', event);\">";
+                  str += ("<td>" + item.Name + "</td>");
+                  str += ("<td>" + jsonDateFormat(item.FromDate) + "</td>");
+                  str += ("<td>" + jsonDateFormat(item.ToDate) + "</td>");
+                  str += ("<td>" + parseInt(item.SampleNumber) + "</td>");
+                  str += ("<td>" + item.QuestionnaireStatus + "</td>");
+                  str += "<td>";
+                  if (userType == 1 || userType == 7 || userType == 8) {
+                      str += ("<a href=\"javascript:void(0)\" class=\"Allmb_Opera\" onclick=\"CopyQuestionnaire('" + item.ID + "');\">复制</a>&nbsp;&nbsp;");
+                  }
+                  str += ("<a href=\"javascript:void(0)\" class=\"Allmb_Opera\" onclick=\"ViewQuestionnaire('" + item.Name + "', '" + item.ID + "');\">预览</a></td>");
+                  str += ("<input type=\"hidden\" value=\"" + item.ID + "\" />");
+                  str += "</tr>";
+                  $("#questionnaireList").append(str);
+              }
+          });
+
+
+          var totalNumber = index;
+          $("#txtResourceNumber").text(totalNumber);
+          var pageNumber = parseInt(totalNumber / perPage + 1);
+          if (totalNumber > 0 && totalNumber % perPage == 0) {
+              pageNumber = pageNumber - 1;
+          }
+
+          layui.use(['laypage'], function () {
+              var laypage = layui.laypage;
+              laypage({
+                  cont: 'pagecontrol', //容器。值支持id名、原生dom对象，jquery对象。【如该容器为】：<div id="page1"></div>
+                  pages: pageNumber, //通过后台拿到的总页数
+                  curr: pageIndex || 1, //当前页
+                  jump: function (obj, first) { //触发分页后的回调
+                      if (!first) { //点击跳页触发函数自身，并传递当前页：obj.curr
+                          BindData(data, pageSize, obj.curr);
+                      }
+                  }
+              });
+          });
+          if (totalNumber <= 0) {
+              $("#questionnaireList").append("<tr><td colspan=\"5\" class=\"No_Search\">根据以上条件，没有查询到任何记录</td></tr>");
+          }
+      }
+
+      function CopyQuestionnaire(id) {
+          layer.confirm('您确定要复制该问卷吗？', {
+              btn: ['确定', '取消']
+          }, function (index) {
+              layer.close(index);
+
+              var date = new Date();
+              var url = '../Logic/Questionnaire.ashx';
+              $.ajax({
+                  url: url,
+                  data: {
+                      Type: 22,
+                      Date: date,
+                      qid: id
+                  },
+                  dataType: "json",
+                  type: "POST",
+                  traditional: true,
+                  success: function (data) {
+                      Search();
+                      layer.alert("复制成功！");
+                  },
+                  error: function () {
+                      layer.alert("复制失败！");
+                  }
+              });
+          });
+      }
+
+      function ViewQuestionnaire(name, id) {
+          var url = "PreviewQuestionnaire.htm"
+          layer.open({
+              type: 2,
+              title: "问卷预览：" + name,
+              shadeClose: true,
+              area: ["80%", "90%"],
+              offset: "auto",
+              content: url + '?id=' + id,
+              shade: 0.6
+          });
+      }
+
+      function ViewDetails(id, evt) {
+          var e = evt || window.event;
+          var curobj = e.srcElement ? e.srcElement : e.target;
+          if (curobj.tagName == "A") {
+            
+          }
+          else {
+              window.location = "QuestionnaireInfo.htm?id=" + id + "&st=1";
+          }
+      }
+
+      function AddNewQuestionnaire() {
+          window.location = "QuestionnaireInfo.htm";
+      }
+  
+  </script>
+
+</head>
+<body>
+<!--母版页-->
+    <div id="CommonTop"></div>
+    <div id="CommonLeft"></div>
+	<script type="text/javascript">
+	    $(function () {
+	        $("#CommonTop").load("CommonTop.htm");
+	        LoadCurrentProjectLeft();
+	        $("#CommonProjectTop").load("CommonProjectTop.htm");
+	    });
+    </script>
+<!--内容页-->
+<div class="layui-tab layui-tab-brief" lay-filter="demoTitle">
+    <div id="CommonProjectTop"></div>
+    <div class="layui-body layui-tab-content crightMain">
+    	<div class="crightMainTitle">
+    		<div class="layui-tab lpaperItitle">
+			  <ul class="layui-tab-title">
+			    <li class="layui-this" id="tabCurrent">所有问卷</li>	    	    
+			  </ul>
+			</div>
+		</div>
+    	<div class="crightMainSubTit">
+    		<strong>筛选条件：</strong>
+    	</div>
+    	<div class="crightSearch">
+    		<form class="layui-form" action="">
+    		<div class="CsearchInputM">    			
+    			<div class="layui-inline">
+			      <label class="layui-form-label">问卷名称：</label>
+			      <div class="layui-input-block">
+			       <input type="text" id="txtName" name="title" lay-verify="title" autocomplete="off" placeholder="默认不限" style="width:230px;" class="layui-input"/>
+			      </div>
+			    </div>			   
+			    <div class="layui-inline">
+			    	 	<label class="layui-form-label">问卷状态：</label>
+					    <div class="layui-input-block Input_select">
+					      <select id="ddlStatus">
+					        <option value="-999">不限</option>
+					        <option value="1">已创建</option>
+					        <option value="2">执行中</option>
+					        <option value="3">已执行</option>
+					      </select>
+					    </div>
+			    </div>
+			    <div class="layui-inline">
+                    <label class="layui-form-label">执行日期：</label>
+                    <div class="layui-input-inline">
+                      <input class="layui-input Input_Date" placeholder="开始日期" id="calFromDate"/>
+                      <div class="InputDateInco">
+				    	<img src="images/InputDateInco.png" id="fromicon"/>
+				      </div>
+                    </div>
+                    <div class="layui-input-inline">
+                      <input class="layui-input Input_Date" placeholder="截止日期" id="calToDate"/>
+                      <div class="InputDateInco">
+				    	<img src="images/InputDateInco.png" id="toicon"/>
+				      </div>
+                    </div>
+                </div>
+    		</div>
+    		</form>
+            <div class="crightSearchBtn">
+    			<button class="layui-btn" id="btnSearch">查  询</button>
+    		</div>
+    	</div>
+        <hr />
+    	<div class="Allmb_table">
+    		<table class="layui-table" lay-even="" lay-skin="nob">
+			  <colgroup>
+			    <col width="480">
+			    <col width="150">
+			    <col width="150">
+			    <col width="100">
+                <col width="100">
+			    <col width="120">
+			  </colgroup>
+			  <thead>
+			    <tr>
+			      <th>问卷名称</th>
+			      <th>开始日期</th>
+			      <th>截止日期</th>
+                  <th>样本量</th>
+			      <th>状态</th>
+			      <th>操作</th>
+			    </tr> 
+			  </thead>
+			  <tbody id="questionnaireList">
+			  </tbody>
+			</table> 
+            <div id="pagecontrol"></div>
+    	</div>
+        <div class="Txtright">
+    		<button class="layui-btn mt10" id="btnNew">新建问卷</button>
+		</div> 
+   	</div>
+</div>
+</body>
+</html>

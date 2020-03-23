@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>渠道核查在线管理平台</title>
+<link rel="shortcut icon" href="favicon.ico"/>
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">  
+
+<meta http-equiv="Expires" content="0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Cache-control" content="no-cache">
+<meta http-equiv="Cache" content="no-cache">
+
+  <link rel="stylesheet" href="css/layui.css"  media="all">
+  <link rel="stylesheet" href="css/common.css"  media="all">
+  <link href="css/Projectnfo.css" rel="stylesheet" type="text/css" media="all"/>
+
+  <script type="text/javascript" src="js/jquery_2-1-0_min.js"  charset="utf-8"></script>
+  <script src="js/jquery.base64.js" type="text/javascript"></script>
+  <script src="js/Common.js" type="text/javascript"></script>
+  <script src="js/layui.js" type="text/javascript" charset="utf-8"></script>
+
+
+   <link href="Viewer/viewer.min.css" rel="stylesheet" type="text/css" />
+   <script src="Viewer/viewer.min.js" type="text/javascript"></script>
+
+
+  <script type="text/javascript" language="javascript">
+      //搜索表单样式
+      layui.use(['form', 'layedit', 'laydate'], function () {
+          var form = layui.form()
+  , layer = layui.layer
+  , layedit = layui.layedit
+  , laydate = layui.laydate;
+          //全选
+          form.on('checkbox(allChoose)', function (data) {
+              var child = $(data.elem).parents('table').find('tbody input[type="checkbox"]');
+              child.each(function (index, item) {
+                  if ($(item).prop("disabled") == false) {
+                      item.checked = data.elem.checked;
+                  }
+              });
+              form.render('checkbox');
+          });
+
+      });
+
+      $(function () {
+
+          $.ajaxSettings.async = false;
+
+          LoadProvince();
+
+          layui.use('form', function () {
+              var form = layui.form();
+              form.on('select(ddlProvince)', function (data) {
+                  LoadCity();
+              });
+
+              form.on('select(ddlCity)', function (data) {
+                  LoadDistrict();
+              });
+
+              form.on('select(ddlQuestionnaire)', function (data) {
+                  InitPeriod();
+              });
+          });
+
+          InitStageStatus();
+
+          LoadQuestionnaires();
+
+          if (userType == 1 || userType == 7 || userType == 8) {
+              $("#btnCloseAppeal").show();
+              $("#btnDownloadAll").show();
+          }
+
+          if (userType == 5) {
+              $("#ddlStageStatus").val("6");
+              $("#ddlStatus").val("0");
+              $("#btnDownloadAll").show();
+              $("#btnUpdateAll").show();
+          }
+
+          if (userType == 7) {
+              $("#btnDownloadAll").show();
+              $("#btnUpdateAll").show();
+          }
+
+          if (userType == 9) {
+              $("#ddlStageStatus").val("6");
+              $("#ddlStatus").val("3");
+          }
+
+          $.ajaxSettings.async = true;
+      });
+
+      function UpdateAll() {
+          var qid = $("#ddlQuestionnaire").val();
+          var period = $("#ddlPeriod").val();
+          if (qid == "-999" || qid == "") {
+              layui.use('layer', function () {
+                  var layer = layui.layer;
+                  layer.alert("请选择需要更新的问卷.");
+              });
+              return;
+          }
+          if (period == "-999") {
+              layui.use('layer', function () {
+                  var layer = layui.layer;
+                  layer.alert("请选择需要更新的期次.");
+              });
+              return;
+          }
+          var date = new Date();
+          var url = '../Logic/QuestionAnswer.ashx';
+          $.ajax({
+              url: url,
+              data: {
+                  type: 8,
+                  date: date,
+                  qid: qid,
+                  period: period,
+                  stageStatus: '-999',
+                  statusID: '-999',
+                  keyword: ''
+              },
+              dataType: "json",
+              type: "POST",
+              traditional: true,
+              success: function (data) {
+                  var msg = "更新 " + data.finished + " 份问卷至完成状态</br>";
+                  msg +=("更新 " + data.leave + " 份问卷至未裁决状态");
+                  layer.alert(msg);
+              },
+              error: function (e) {
+                  layer.alert("更新失败！");
+              }
+          });
+      }
+
+      function DownloadAll() {
+          var qid = $("#ddlQuestionnaire").val();
+          var period = $("#ddlPeriod").val();
+          if (qid == "-999" || qid == "") {
+              layui.use('layer', function () {
+                  var layer = layui.layer;
+                  layer.alert("请选择需要下载的申诉内容所执行的问卷.");
+              });
+              return;
+          }
+          if (period == "-999") {
+              layui.use('layer', function () {
+                  var layer = layui.layer;
+                  layer.alert("请选择需要下载的申诉内容所执行的期次.");
+              });
+              return;
+          }
+          var date = new Date();
+          var url = '../Logic/QuestionAnswer.ashx';
+          $.ajax({
+              url: url,
+              data: {
+                  type: 7,
+                  date: date,
+                  qid: qid,
+                  period: period,
+                  stageStatus: '-999',
+                  statusID: '-999',
+                  keyword: ''
+              },
+              dataType: "text",
+              type: "GET",
+              traditional: true,
+              success: function (data) {
+                  if (data == "0") {
+                      layer.alert("下载失败！");
+                  }
+                  else {
+                      window.open(data, "_parent");
+                  }
+              },
+              error: function (e) {
+                  layer.alert("下载失败！");
+              }
+          });
+      }
+
+      function InitStageStatus() {
+          $("#ddlStageStatus").empty();
+          
+          var date = new Date();
+          var url = '../Logic/BusinessConfiguration.ashx';
+          $.ajax({
+              url: url,
+              data: {
+                  Type: 7,
+                  Date: date
+              },
+              dataType: "json",
+              type: "GET",
+              traditional: true,
+              success: function (data) {
+                  $("#ddlStageStatus").append("<option value='5'>全部申诉中</option>");
+                  $.each(data, function (i, item) {
+                        $("#ddlStageStatus").append("<option value='5|" + item.LevelID + "'>" + item.Name + "</option>");
+                  });
+                  $("#ddlStageStatus").append("<option value='6'>复审中</option>");
+                  $("#ddlStageStatus").append("<option value='7'>完成</option>");
+              },
+              error: function () {
+              }
+          });
+      }
+
+      function InitPeriod() {
+          var qid = $("#ddlQuestionnaire").val();
+          var date = new Date();
+          var url = '../Logic/Questionnaire.ashx';
+          $("#ddlPeriod").empty();
+          $("#ddlPeriod").append("<option value=\"-999\">全部</option>");
+          $.getJSON(url, { type: "18", date: date, qid: qid }, function (data) {
+              $.each(data, function (i, item) {
+                  var periodValue = jsonDateFormat(item.FromDate) + "|" + jsonDateFormat(item.ToDate)
+                  if (date >= ConvertJSONDateToJSDate(item.FromDate) && date <= ConvertJSONDateToJSDate(item.ToDate)) {
+                      $("#ddlPeriod").append("<option value=\"" + periodValue + "\" selected>" + item.Period + "</option>");
+                  }
+                  else {
+                      $("#ddlPeriod").append("<option value=\"" + periodValue + "\">" + item.Period + "</option>");
+                  }
+              });
+              layui.use('form', function () {
+                  var form = layui.form();
+                  form.render('select');
+              });
+          });
+      }
+
+      function LoadProvince() {
+          var areaID = $("#ddlAreaDivision").val();
+          var date = new Date();
+          var url = '../Logic/BusinessConfiguration.ashx';
+          $("#ddlProvince").empty();
+          $("#ddlProvince").append("<option value=\"-999\">全部</option>");
+          $.getJSON(url, { type: "3", date: date, areaID: areaID }, function (data) {
+              $.each(data, function (i, item) {
+                  $("#ddlProvince").append("<option value=\"" + item.Code + "\">" + item.Name + "</option>");
+              });
+
+              var number = JSONLength(data);
+              if (number == 1) {
+                  $("#ddlProvince").val(data[0].Code);
+                  $("#ddlProvince").attr("disabled", true);
+              }
+
+              LoadCity();
+          });
+      }
+
+      function LoadCity() {
+          var provinceCode = $("#ddlProvince").val();
+          var date = new Date();
+          var url = '../Logic/BusinessConfiguration.ashx';
+          $("#ddlCity").empty();
+          $("#ddlCity").append("<option value=\"-999\">全部</option>");
+          $.getJSON(url, { type: "4", date: date, provinceCode: provinceCode }, function (data) {
+              $.each(data, function (i, item) {
+                  $("#ddlCity").append("<option value=\"" + item.Code + "\">" + item.Name + "</option>");
+              });
+
+              layui.use('form', function () {
+                  var form = layui.form();
+                  form.render('select');
+              });
+
+              var number = JSONLength(data);
+              if (number == 1) {
+                  $("#ddlCity").val(data[0].Code);
+                  $("#ddlCity").attr("disabled", true);
+              }
+              else if (number > 1) {
+                  $("#ddlCity").attr("disabled", false); 
+              }
+
+              LoadDistrict();
+          });
+      }
+
+      function LoadDistrict() {
+          var cityCode = $("#ddlCity").val();
+
+          var date = new Date();
+          var url = '../Logic/BusinessConfiguration.ashx';
+          $("#ddlDistrict").empty();
+          $("#ddlDistrict").append("<option value=\"-999\">不限</option>");
+
+          $.getJSON(url, { type: "5", date: date, cityCode: cityCode }, function (data) {
+              $.each(data, function (i, item) {
+                  $("#ddlDistrict").append("<option value=\"" + item.Code + "\">" + item.Name + "</option>");
+              });
+
+              var number = JSONLength(data);
+              if (number == 1) {
+                  $("#ddlDistrict").val(data[0].Code);
+                  $("#ddlDistrict").attr("disabled", true);
+              }
+
+              layui.use('form', function () {
+                  var form = layui.form();
+                  form.render('select');
+              });
+          });
+      }
+
+      function LoadQuestionnaires() {
+          var date = new Date();
+          var url = '../Logic/Questionnaire.ashx';
+          $("#ddlQuestionnaire").empty();
+          $("#ddlQuestionnaire").append("<option value=\"-999\">全部</option>");
+          $.getJSON(url, { type: "1", date: date }, function (data) {
+              $.each(data, function (i, item) {
+                  $("#ddlQuestionnaire").append("<option value=\"" + item.ID + "\">" + item.Name + "</option>");
+              });
+
+              if (JSONLength(data) == 1) {
+                  $("#ddlQuestionnaire").val(data[0].ID);
+                  $("#ddlQuestionnaire").attr("disabled", true);
+                  InitPeriod();
+              }
+          });
+      }
+
+      function Search() {
+
+          var qid = $("#ddlQuestionnaire").val();
+          var period = $("#ddlPeriod").val();
+          if (qid == "-999" || qid == "") {
+              layui.use('layer', function () {
+                  var layer = layui.layer;
+                  layer.alert("请选择需要查询的申诉内容所执行的问卷.");
+              });
+              return;
+          }
+          if (period == "-999") {
+              layui.use('layer', function () {
+                  var layer = layui.layer;
+                  layer.alert("请选择需要查询的申诉内容所执行的期次.");
+              });
+              return;
+          }
+         var stageStatus = $("#ddlStageStatus").val();
+         var statusID = $("#ddlStatus").val();
+         var keyword = $("#txtKeyword").val();
+
+         $("#dataList").empty();
+         $("#dataList").append("<tr><td colspan=\"5\" class=\"No_Search\"><img src=\"images/loading.gif\"/>正在后台处理中，请耐心等待...</td></tr>");
+          var pageSize = 100;
+          var date = new Date();
+          var url = '../Logic/QuestionAnswer.ashx';
+          $.ajax({
+              url: url,
+              data: {
+                  type: 5,
+                  date: date,
+                  qid: qid,
+                  period: period,
+                  stageStatus: stageStatus,
+                  statusID: statusID,
+                  keyword: keyword
+              },
+              dataType: "json",
+              type: "GET",
+              traditional: true,
+              success: function (data) {
+                  BindData(data, pageSize, 1);
+              },
+              error: function (e) {
+                  layer.alert("下载失败！");
+              }
+          });
+      }
+
+      function BindData(data, pageSize, pageIndex) {
+          $("#dataList").html("");
+          var perPage = pageSize;
+          var index = 0;
+          $.each(data, function (i, item) {
+              index = i + 1;
+              var currentIndex = parseInt(i / perPage + 1);
+              if (currentIndex == pageIndex) {
+                  var str = "<tr>";
+                  str += ("<td><input type=\"checkbox\" name=\"selectbox\" lay-skin=\"primary\" /></td>");
+                  str += ("<td>" + item.Code + "</td>");
+                  str += ("<td>" + item.Name + "</td>");
+                  str += ("<td>" + item.ParentQuestion + "</td>");
+                  str += ("<td>" + item.Question + "</td>");
+                  str += ("<td>" + item.TotalScore + "</td>");
+                  str += ("<td name=\"score\">" + item.Score + "</td>");
+                  str += ("<td>" + item.OptionText + "</td>");
+                  str += ("<td>" + item.AuditNotes + "</td>");
+                  str += ("<td>" + item.ParentName + "</td>");
+                  str += ("<td>" + ReplaceNULL(item.AuditNotes2, '未填写内容') + "</td>");
+                  str += ("<td name=\"reAudit\">" + ReplaceNULL(item.AuditNotes3, '未填写内容') + "</td>");
+                  str += ("<td name=\"topClient\">" + ReplaceNULL(item.AuditNotes4, '未填写内容') + "</td>");
+
+                  var fileNumber = item.UploadFileNumber + item.AuditFileNumber;
+                  str += ("<td>");
+                  str += "<a href=\"javascript:void(0);\" class=\"Allmb_Opera\" onclick=\"ShowFilesWithList('" + item.AnswerID + "', 6);\">证明(" + fileNumber + ")</a>";
+                  str += "&nbsp;&nbsp;<a href=\"javascript:void(0);\" class=\"Allmb_Opera\" onclick=\"ShowFilesWithList('" + item.AnswerID + "', 5);\">反馈(" + item.ClientFileNumber + ")</a>";
+                  str += ("</td>");
+
+                  str += ("<td>");
+                  str += ("<label name=\"lblAppealStatusText\">" + item.AppealStatusText + "</label>");
+                  str += "<input type=\"hidden\" name=\"hfQuestionID\" value=\"" + item.QuestionID + "\"/>";
+                  str += "<input type=\"hidden\" name=\"hfResultID\" value=\"" + item.ResultID + "\"/>";
+                  str += ("</td>");
+
+                  str += ("<td>");
+
+                  /*
+                  <th>机构编号</th>
+                  <th>机构名称</th>
+                  <th>二级指标</th>
+                  <th>三级指标</th>
+                  <th>标准分</th>
+                  <th>实际得分</th>
+                  <th>原始扣分原因</th>
+                  <th>网点复议理由</th>
+                  <th>分行意见</th>
+                  <th>三方反馈</th>
+                  <th>总行意见</th>
+                  <th>文件</th>
+                  <th>操作</th>
+                  */
+                  if (userType == 7 || item.Status != 7) {
+                      str += "<a href=\"javascript:void(0);\" class=\"Allmb_Opera\" onclick=\"DoEidtAnswer('" + item.ResultID + "','" + item.QuestionID + "','" + item.QuestionType + "','" + item.AnswerID + "','3','" + item.Name + "');\">修改</a>";
+                  }
+                  if (userType == 5 && item.AppealStatus == 0) {
+                      //质控督导未处理
+                      str += "&nbsp;&nbsp;<a href=\"javascript:void(0);\" class=\"Allmb_Opera\" onclick=\"DoAddAuditNote('" + item.QuestionID + "','" + item.ResultID + "', 4);\">说明</a>";
+                      str += "&nbsp;&nbsp;<a href=\"javascript:void(0);\" class=\"Allmb_Opera\" onclick=\"ReplyAppeal('" + item.ResultID + "','" + item.QuestionID + "');\">处理</a>";
+                  }
+                  else if (userType == 9 && item.AppealStatus == 3) {
+                      //客户未裁决
+                      str += "&nbsp;&nbsp;<a href=\"javascript:void(0);\" class=\"Allmb_Opera\" onclick=\"DoAddAuditNote('" + item.QuestionID + "','" + item.ResultID + "', 4);\">说明</a>";
+                      str += "&nbsp;&nbsp;<a href=\"javascript:void(0);\" class=\"Allmb_Opera\" onclick=\"ReplyAppeal('" + item.ResultID + "','" + item.QuestionID + "');\">处理</a>";
+                  }
+
+                  str += ("</td>");
+                  str += "</tr>";
+                  $("#dataList").append(str);
+              }
+          });
+
+          layui.use('form', function () {
+              var form = layui.form();
+              form.render('checkbox');
+          });
+
+          var totalNumber = index;
+          $("#txtRecordNumber").text(totalNumber);
+          var pageNumber = parseInt(totalNumber / perPage + 1);
+          if (totalNumber > 0 && totalNumber % perPage == 0) {
+              pageNumber = pageNumber - 1;
+          }
+
+          layui.use(['laypage'], function () {
+              var laypage = layui.laypage;
+              laypage({
+                  cont: 'pagecontrol', //容器。值支持id名、原生dom对象，jquery对象。【如该容器为】：<div id="page1"></div>
+                  pages: pageNumber, //通过后台拿到的总页数
+                  curr: pageIndex || 1, //当前页
+                  jump: function (obj, first) { //触发分页后的回调
+                      if (!first) { //点击跳页触发函数自身，并传递当前页：obj.curr
+                          BindData2(data, pageSize, obj.curr);
+                      }
+                  }
+              });
+          });
+          if (totalNumber <= 0) {
+              $("#dataList").append("<tr><td colspan=\"5\" class=\"No_Search\">根据以上条件，没有查询到任何记录</td></tr>");
+          }
+      }
+
+      function DoAddAuditNote(questionID, resultID, auditType) {
+          $("#hfNoteQuestionID").val(questionID);
+          $("#hfNoteResultID").val(resultID);
+          $("#hfNoteAuditType").val(auditType);
+          $("#txtNote").val("");
+          layer.open({
+              type: 1,
+              title: "添加说明",
+              area: ["500px", "230px"],
+              content: $('#addNote')
+          });
+      }
+
+      function CancelUserNote() {
+          layer.closeAll();
+      }
+
+      function SaveUserNote() {
+          var note = $("#txtNote").val();
+          if (note == "") {
+              layer.alert("请输入文字说明.");
+              return;
+          }
+
+          var resultID = $("#hfNoteResultID").val();
+          var questionID = $("#hfNoteQuestionID").val();
+          var auditType = $("#hfNoteAuditType").val();
+
+          var url = "../Logic/QuestionnaireAudit.ashx";
+          var date = new Date();
+          $.ajax({
+              url: url,
+              data: {
+                  type: 6,
+                  Date: date,
+                  resultID: resultID,
+                  questionID: questionID,
+                  auditType: auditType,
+                  note: note
+              },
+              dataType: "json",
+              type: "POST",
+              traditional: true,
+              success: function (data) {
+                  if (data == "-1") {
+                      layer.alert("提交失败，系统检测到您正在处理的问卷不属于当前登录项目。<br/><br/><b>请重新登录后再处理<b/>", function (index) {
+                          layer.closeAll();
+                          QuitSystemInstance();
+                      });
+                  }
+                  else {
+                      layer.alert("提交成功.", function (index) {
+                          layer.closeAll();
+                      });
+                      $("#dataList").find("input[name='hfQuestionID']").each(function (i, item) {
+                          var questionIDEach = $(item).val();
+                          var resultIDEach = $(item).next().val();
+                          if (questionID == questionIDEach && resultID == resultIDEach) {
+                              if (userType == 5) {
+                                  $(item).closest("tr").find("td[name='reAudit']").text(note);
+                              }
+                              else if (userType == 9) {
+                                  $(item).closest("tr").find("td[name='topClient']").text(note);
+                              }
+                              return false;
+                          }
+                      });
+                  }
+              },
+              error: function (e) {
+
+              }
+          });
+      }
+
+
+      function DoEidtAnswer(resultID, questionID, questionType, answerID, auditType,clientName) {
+          var documentTypeID = 3; //访问员上传
+          if (auditType == "1" || auditType == "2") {
+              documentTypeID = 3; //执行督导，区控上传
+          }
+          else if (auditType == "3" || auditType == "5") {
+              documentTypeID = 4; //质控上传
+          }
+          else if (auditType == "4" || auditType == "8") {
+              documentTypeID = 5; //客户上传
+          }
+          var type = "Q" + questionType + ".htm?ID=" + questionID + "&ResultID=" + resultID + "&AnswerID=" + answerID + "&DocumentTypeID=" + documentTypeID;
+          var questionUrl = "QuestionnaireEdit" + type;
+          var title = "问卷修改：" + $("#ddlQuestionnaire").find("option:selected").text() + " - " + clientName;
+          var area = ['1070px', '90%'];
+          layer.open({
+              type: 2,
+              title: title,
+              shadeClose: false,
+              area: area,
+              offset: "auto",
+              content: questionUrl,
+              shade: 0.6,
+              end: function () {
+                  Search();
+              }
+          });
+      }
+
+      function btnCancelAppeal() {
+          layer.closeAll();
+      }
+
+      function btnSubmitAppeal() {
+          var approved = "0";
+          var keep = $("#cbxAppealKeep").prop("checked");
+          var change = $("#cbxAppealChange").prop("checked");
+          var leave = $("#cbxAppealLeave").prop("checked");
+          if (keep == true) {
+              approved = $("#cbxAppealKeep").val();
+          }
+          if (change == true) {
+              approved = $("#cbxAppealChange").val();
+          }
+          if (leave == true) {
+              approved = $("#cbxAppealLeave").val();
+          }
+          if (approved == "0") {
+              layer.alert("请选择您的处理结果.");
+              return;
+          }
+          var resultID = $("#hfResultID").val();
+          var questionID = $("#hfQuestionID").val();
+          var url = "../Logic/QuestionAnswer.ashx";
+          var date = new Date();
+          $.ajax({
+              url: url,
+              data: {
+                  type: 6,
+                  Date: date,
+                  resultID: resultID,
+                  questionID: questionID,
+                  approved: approved
+              },
+              dataType: "json",
+              type: "POST",
+              traditional: true,
+              success: function (data) {
+                  if (data == "-1") {
+                      layer.alert("提交失败，系统检测到您正在处理的问卷不属于当前登录项目。<br/><br/><b>请重新登录后再处理<b/>", function (index) {
+                          layer.closeAll();
+                          QuitSystemInstance();
+                      });
+                  }
+                  else {
+                      layer.alert("提交成功.", function (index) {
+                          layer.closeAll();
+                      });
+                      var result = $("#ddlStatus option[value=" + approved + "]").text();
+                      $("#dataList").find("input[name='hfQuestionID']").each(function (i, item) {
+                          var questionIDEach = $(item).val();
+                          var resultIDEach = $(item).next().val();
+                          if (questionID == questionIDEach && resultID == resultIDEach) {
+                              $(item).prev().text(result);
+                              if (approved == 2) {
+                                  var scoreTD = $(item).parent().find("td[name='score']")[0];
+                                  $(scoreTD).text($(scoreTD).prev().text());
+                              }
+                              return false;
+                          }
+                      });
+                  }
+              },
+              error: function (e) {
+
+              }
+          });
+      }
+
+      function ReplyAppeal(resultID, questionID) {
+          $("#hfQuestionID").val(questionID);
+          $("#hfResultID").val(resultID);
+          if (userType == 9) {
+              $("#cbxAppealLeave").hide();
+          }
+          layui.use('form', function () {
+              var form = layui.form();
+              $("#cbxAppealKeep").prop("checked", false);
+              $("#cbxAppealChange").prop("checked", false);
+              $("#cbxAppealLeave").prop("checked", false);
+              form.render("radio");
+          });
+          layer.open({
+              type: 1,
+              title: "处理申诉",
+              area: ["300px", "240px"],
+              content: $('#addAppeal') //这里content是一个DOM，注意：最好该元素要存放在body最外层，否则可能被其它的相对元素所影响
+          });
+      }
+
+      function InitQuestionAppealStatus() {
+          $("#ddlStatus").empty();
+          var date = new Date();
+          var url = '../Logic/BusinessConfiguration.ashx';
+          $.ajax({
+              url: url,
+              data: {
+                  Type: 1,
+                  Date: date,
+                  name: 'QuestionAppealStatus'
+              },
+              dataType: "json",
+              type: "GET",
+              traditional: true,
+              success: function (data) {
+                  $("#ddlStatus").append("<option value='-999'>全部</option>");
+                  $.each(data, function (i, item) {
+                      $("#ddlStatus").append("<option value=\"" + item.ID + "\">" + item.Name + "</option>");
+                  });
+              },
+              error: function () {
+
+              }
+          });
+      }
+  </script>
+
+</head>
+<body>
+<!--母版页-->
+    <div id="CommonTop"></div>
+    <div id="CommonLeft"></div>
+	<script type="text/javascript">
+	    $(function () {
+	        $("#CommonTop").load("CommonTop.htm?s=" + (new Date()).toLocaleTimeString());
+	        $("#CommonProjectTop").load("CommonProjectTop.htm");
+
+	        LoadCurrentProjectLeft();
+	    });
+    </script>
+<!--内容页-->
+<div class="layui-tab layui-tab-brief" lay-filter="demoTitle">
+    <div id="CommonProjectTop"></div>   
+    <div class="layui-body layui-tab-content crightMain">
+        <div class="crightMainTitle">
+    		<div class="layui-tab lpaperItitle">
+			  <ul class="layui-tab-title">
+                <li class="layui-this">申诉指标</li>
+			  </ul>
+			</div>
+			</div>
+    	<div class="crightMainSubTit">
+    		<strong>筛选条件：</strong>
+    	</div>
+        <div class="crightSearch">
+    		<form class="layui-form" action="" onsubmit="return false">
+    		<div class="CsearchInputM">    			
+                <div class="layui-inline">
+			        <label class="layui-form-label">执行问卷：</label>
+				    <div class="layui-input-block" style="width:200px;">
+					    <select id="ddlQuestionnaire" lay-filter="ddlQuestionnaire">
+					        <option value="-999">全部</option>
+					    </select>
+				    </div>
+			    </div>
+                <div class="layui-inline">
+			        <label class="layui-form-label">期次：</label>
+				    <div class="layui-input-block Input_select">
+					    <select id="ddlPeriod" lay-filter="ddlPeriod">
+					        <option value="-999">全部</option>
+					    </select>
+				    </div>
+			    </div>
+                <div class="layui-inline">
+			    	<label class="layui-form-label">当前阶段：</label>
+					<div class="layui-input-block style="width:200px;">
+					    <select id="ddlStageStatus" lay-filter="ddlStageStatus">
+					    <option value="-999">全部</option>
+					    </select>
+					</div>
+			    </div>
+                <div class="layui-inline">
+			    	<label class="layui-form-label">申诉状态：</label>
+					<div class="layui-input-block  Input_select">
+					    <select id="ddlStatus" lay-filter="ddlStatus">
+					    <option value="-999">全部</option>
+					    <option value="0">未处理</option>
+                        <option value="1">已维持扣分</option>
+                        <option value="2">已还分</option>
+                        <option value="3">未裁决</option>
+					    </select>
+					</div>
+			    </div>
+                <div class="layui-inline">
+				      <label class="layui-form-label">关键词：</label>
+				      <div class="layui-input-block">
+				        <input id="txtKeyword" style="width: 200px;" type="text" name="title" lay-verify="title" autocomplete="off" placeholder="默认不限" class="layui-input" />
+				      </div>
+				    </div>
+                 <div class="layui-inline crightSearchBtn2">
+			    	<button class="layui-btn" id="btnApply" onclick="Search();">查  询</button>
+			    </div>                
+            </div>
+    		</form>
+    	</div>
+    	<hr/>
+        <div class="crightMainSubTit">
+    	    <p><strong>结果显示：</strong>根据您输入的条件，我们为您检索到 <span id="txtRecordNumber">-</span> 条记录</p>
+        </div>
+
+    	<div class="Allmb_table">
+            <form class="layui-form" action="">
+    		    <table class="layui-table" lay-even="" lay-skin="nob">
+			  <colgroup>
+			    <col width="5">
+                <col width="50">
+			    <col width="100">
+			    <col width="80">
+                <col width="150">
+                <col width="50">
+                <col width="50">
+                <col width="150">
+                <col width="150">
+                <col width="100">
+                <col width="150">
+                <col width="150">
+                <col width="150">
+                <col width="120">
+                <col width="80">
+                <col width="120">
+			  </colgroup>
+			  <thead>
+			    <tr>
+                  <th><input type="checkbox" name="selectAll" lay-skin="primary" lay-filter="allChoose"/></th>
+			      <th>编号</th>
+                  <th>名称</th>
+                  <th>二级指标</th>
+                  <th>三级指标</th>
+                  <th>标准分</th>
+                  <th>得分</th>
+                  <th>扣分原因</th>
+                  <th>复议理由</th>
+                  <th>分行名称</th>
+                  <th>分行意见</th>
+                  <th>三方反馈</th>
+                  <th>总行意见</th>
+                  <th>文件</th>
+                  <th>状态</th>
+                  <th>操作</th>
+			    </tr> 
+			  </thead>
+			  <tbody id="dataList">
+                
+			  </tbody>
+			</table>
+            </form>
+            <div id="pagecontrol"></div>
+    	</div>
+        <div class="Txtright mb20">
+            <button class="layui-btn allhide" id="btnDownloadAll" onclick="DownloadAll();">下载申诉内容</button>
+            <button class="layui-btn allhide" id="btnUpdateAll" onclick="UpdateAll();">更新问卷状态</button>
+		</div> 
+   	</div>
+</div>
+   
+<div id="addNote" class="allhide mt10">
+<form class="layui-form paddingright30px paddingleft30px" action="" onsubmit="return false;">
+  <div class="layui-form-item layui-form-text">
+      <textarea id="txtNote" class="layui-textarea"></textarea>
+      <input type="hidden" id="hfNoteQuestionID" />
+      <input type="hidden" id="hfNoteResultID" />
+      <input type="hidden" id="hfNoteAuditType" />
+  </div>
+</form>
+<div class="TextCenter mt20 mb10">
+    <button class="layui-btn layui-btn-small aq-btn-pre" id="btnCancelNote" onclick="CancelUserNote()">取 消</button>
+    <button class="layui-btn layui-btn-small aq-btn-next" id="btnSaveNote" onclick="SaveUserNote()">确 定</button> 
+</div>
+</div> 
+
+<div id="addAppeal" class="allhide mt10">
+<form class="layui-form paddingright30px" action="" onsubmit="return false;">
+  <div class="layui-form-item">
+    <label class="layui-form-label">处理结果：</label>
+    <div class="layui-input-block">
+      <input type="radio" name="appeal" value="1" title="维持扣分" checked="" id="cbxAppealKeep" lay-filter="cbxAppealKeep"/>
+      <input type="radio" name="appeal" value="2" title="还分" checked="" id="cbxAppealChange" lay-filter="cbxAppealChange"/>
+      <input type="radio" name="appeal" value="3" title="未裁决" checked="" id="cbxAppealLeave" lay-filter="cbxAppealLeave"/>
+      <input type="hidden"" id="hfQuestionID" />
+      <input type="hidden"" id="hfResultID" />
+    </div>
+  </div>
+</form>
+<div class="TextCenter mt20 mb10">
+    <button class="layui-btn layui-btn-small aq-btn-pre" onclick="btnCancelAppeal()">取 消</button>
+    <button class="layui-btn layui-btn-small aq-btn-next" onclick="btnSubmitAppeal()">确 定</button> 
+</div>
+</div>
+
+
+<script type="text/javascript">
+	$(function () {
+	    Search();
+	});
+</script>
+
+</body>
+</html>

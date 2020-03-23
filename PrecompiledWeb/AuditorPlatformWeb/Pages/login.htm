@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="format-detection" content="telephone=no">  
+		<title>渠道核查在线管理平台 - 登录</title>
+        <link rel="shortcut icon" href="favicon.ico"/>
+		<link rel="stylesheet" href="css/login.css" />
+        <script src="js/jquery_2-1-0_min.js" type="text/javascript"></script>
+        <script src="js/JQuery.Cookie.js" type="text/javascript"></script>
+        <script src="js/layui.js" type="text/javascript"></script>
+        <script type="text/javascript" language="javascript">
+
+            layui.use(['form'], function () {
+                var form = layui.form();
+            });
+
+
+            $(function () {
+                $("#btnLogin").click(function () {
+                    LoginAction();
+                });
+
+                var returnProjectID = getUrlParam("returnProjectID");
+                if (returnProjectID != "" && returnProjectID != null) {
+                    $("#hfReturnProjectID").val(returnProjectID);
+                }
+                var returnUrl = getUrlParam("returnUrl");
+                if (returnUrl != "" && returnUrl != null) {
+                    $("#hfReturnUrl").val(unescape(returnUrl));
+                }
+
+                LoadCookie();
+
+                $('#txtUserNameAP').bind('keypress', function (event) {
+                    if (event.keyCode == "13") {
+                        $("#btnLogin").click();
+                    }
+                });
+                $('#txtPasswordAP').bind('keypress', function (event) {
+                    if (event.keyCode == "13") {
+                        $("#btnLogin").click();
+                    }
+                });
+                $('#txtRandCode').bind('keypress', function (event) {
+                    if (event.keyCode == "13") {
+                        $("#btnLogin").click();
+                    }
+                });
+            });
+
+            function LoginAction() {
+                var username = $("#txtUserNameAP").val();
+                var pwd = $("#txtPasswordAP").val();
+                var randCode = $("#txtRandCode").val();
+                if (username == "" || pwd == "") {
+                    layer.alert("请输入用户名和密码.");
+                    return;
+                }
+
+                if (randCode == "") {
+                    layer.alert("请输入验证码.");
+                    return;
+                }
+
+                var date = new Date();
+                var url = '../Logic/Users.ashx';
+                $.ajax({
+                    url: url,
+                    data: {
+                        Type: 4,
+                        Date: date,
+                        username: username,
+                        pwd: pwd,
+                        randCode: randCode
+                    },
+                    dataType: "json",
+                    type: "POST",
+                    traditional: true,
+                    success: function (data) {
+                        var result = data.Result;
+                        if (result == "1") {
+                            SetCookie();
+                            //redirect to first page
+                            var returnUrl = $("#hfReturnUrl").val();
+                            var returnProjectID = $("#hfReturnProjectID").val();
+                            if (returnUrl != "") {
+                                if (returnProjectID != "") {
+                                    LoginProject(returnProjectID, returnUrl);
+                                }
+                                else {
+                                    //window.location = $("#hfReturnUrl").val();
+                                    window.location.href = data.FirstPage;
+                                }
+
+                            }
+                            else {
+                                window.location.href = data.FirstPage;
+                            }
+                        }
+                        else if (result == "2") {
+                            layer.alert("该账号已被停用，请咨询您的上级或系统管理员.");
+                            $("#txtPasswordAP").val("");
+                            $("#txtRandCode").val("");
+                            refreshRandCode();
+                        }
+                        else if (result == "3") {
+                            layer.alert("验证码输入错误，请重新输入.");
+                            $("#txtRandCode").val("");
+                            refreshRandCode();
+                        }
+                        else {
+                            layer.alert("您输入的用户名或密码不正确，请重新输入.");
+                            $("#txtPasswordAP").val("");
+                            $("#txtRandCode").val("");
+                            refreshRandCode();
+                        }
+                    },
+                    error: function (e) {
+                        layer.alert("验证错误，请重新输入.");
+                        $("#txtPasswordAP").val("");
+                        $("#txtRandCode").val("");
+                        refreshRandCode();
+                    }
+                });
+            }
+
+            function LoginProject(id, url) {
+                var date = new Date();
+                var url = '../Logic/Project.ashx';
+                $.ajax({
+                    url: url,
+                    data: {
+                        Type: 6,
+                        Date: date,
+                        id: id
+                    },
+                    dataType: "json",
+                    type: "POST",
+                    traditional: true,
+                    success: function (data) {
+                        window.location = url;
+                    },
+                    error: function () {
+                        layer.alert("跳转失败！");
+                    }
+                });
+            }
+
+            function LoadCookie() {
+                var ru = $.cookie("RememberUserAP");
+                if (ru == "1") {
+                    var userName = $.cookie("UserNameAP");
+                    $("#txtUserNameAP").val(userName);
+                    $("#RememberUserAP").attr("checked", true);
+                }
+                var rp = $.cookie("RememberPassWordAP");
+                if (rp == "1") {
+                    var pwd = $.cookie("PasswordAP");
+                    $("#txtPasswordAP").val(pwd);
+                    $("#RememberPassWordAP").attr("checked", true);
+                }
+            }
+
+            function SetCookie() {
+                var bRememberUserAP = $("#RememberUserAP").prop("checked");
+                if (bRememberUserAP == true) {
+                    $.cookie("RememberUserAP", "1", { expires: 30 });
+                    $.cookie("UserNameAP", $("#txtUserNameAP").val(), { expires: 30 });
+                }
+                else {
+                    $.cookie("RememberUserAP", "", { expires: -1 });
+                    $.cookie("UserNameAP", "", { expires: -1 });
+                }
+
+                var bRememberPassWordAP = $("#RememberPassWordAP").prop("checked");
+                if (bRememberPassWordAP == true) {
+                    $.cookie("RememberPassWordAP", "1", { expires: 30 });
+                    $.cookie("PasswordAP", $("#txtPasswordAP").val(), { expires: 30 });
+                }
+                else {
+                    $.cookie("RememberPassWordAP", "", { expires: -1 });
+                    $.cookie("PasswordAP", "", { expires: -1 });
+                }
+            }
+
+            //获取url中的参数
+            function getUrlParam(name) {
+                var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)"); //构造一个含有目标参数的正则表达式对象
+                var r = window.location.search.substr(1).match(reg);  //匹配目标参数
+                if (r != null) return unescape(r[2]); return null; //返回参数值
+            }
+
+            function refreshRandCode() {
+                var verify = document.getElementById('imgRandCode');
+                verify.setAttribute('src', '../Logic/Users.ashx?type=23&r=' + Math.random());
+            }
+
+        </script>
+
+        <style type="text/css">
+        .code
+        {
+                background:url(code_bg.jpg);
+                font-family:Arial;
+                font-style:italic;
+                 color:blue;
+                 font-size:30px;
+                 border:0;
+                 padding:2px 3px;
+                 letter-spacing:3px;
+                 font-weight:bolder;             
+                 float:left;            
+                 cursor:pointer;
+                 width:150px;
+                 height:60px;
+                 line-height:60px;
+                 text-align:center;
+                 vertical-align:middle;
+
+        }
+    </style>
+
+	</head>
+	<body>
+		<div class="loginMain">
+			<div class="loginLogo">
+				<img class="WaImg" src="images/logo.png" />
+			</div>
+			<div class="loginConter">
+				<div class="loginTit">
+					<img class="WaImg" src="images/loginTit.png" />
+				</div>
+				<div class="LoginMainFrom">
+					<form>
+		            	<div class="LoginInput">
+		                	<input type="text" placeholder="请输入您的用户名" id="txtUserNameAP"/>
+		                    <div class="LoginInput_Inco"><img class="WaImg" src="images/username.png"/></div>
+		                </div>
+		                <div class="LoginInput">
+		                	<input type="password" placeholder="请输入您的密码" id="txtPasswordAP"/>
+		                    <div class="LoginInput_Inco"><img class="WaImg" src="images/password.png"/></div>
+		                </div>
+		                <div class="LoginInput Login_Opera">	
+		                	<span class="fr">
+		                		<img id="imgRandCode" width="104px" height="48px" onclick="refreshRandCode()" src="../Logic/Users.ashx?type=23" />
+		                	</span>
+		                    <input id="txtRandCode" type="text" placeholder="点击图片可刷新验证码"/>
+                            <div class="LoginInput_Inco"><img class="WaImg" src="images/yzmInco.png"/></div>
+		                </div>
+		                <div class="Login_OperaTxt">
+		                	<span>
+		                		<input type="checkbox" id="RememberUserAP"> 
+		                		<label for="RememberUserAP">记住用户名</label>
+		                	</span>
+		                	<span>
+		                		<input type="checkbox" id="RememberPassWordAP"> 
+		                		<label for="RememberPassWordAP">记住密码</label>
+		                	</span>
+		                	<a href="#" class="ForgetLink fr">忘记密码</a>
+		                </div>
+		                <div class="LoginInput LoginInputBtn">
+		                	<input type="button" id="btnLogin"/>                  
+		                </div>
+		            </form>
+				</div>
+			</div>
+			<input type="hidden" id="hfReturnUrl" />
+            <input type="hidden" id="hfReturnProjectID" />
+		</div>
+	</body>
+</html>

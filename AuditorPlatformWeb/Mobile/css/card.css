@@ -1,0 +1,50 @@
+﻿
+.title
+{
+    font-family: 楷体;
+    font-size: 2em;
+    text-align: left; vertical-align: middle;
+    color: #EB6317;
+    font-weight: 800;
+    }
+    
+.contentTable
+{
+    width:100%;
+    margin-top: 8%;
+    }
+    
+.labelfield
+{
+    width: 25%;
+    font-family: @华文楷体;
+    text-align: right; 
+    padding-right: 2%;
+    vertical-align: middle;
+    color: #2F4056;
+    font-weight: 800;
+    }
+.valuefield
+{
+   width: 70%; 
+   border-bottom: 2px solid #c2c2c2;
+   text-align: left;
+   vertical-align: bottom;
+   padding-left:10px;
+   color:#333;
+   font-family: 隶书;
+}
+.spacingrow
+{
+    height: 30px;
+    }
+    
+.photoTable
+{
+    width:100%;
+    text-align: center;
+    }
+.righttdspacing
+{
+    width: 3%;
+    }

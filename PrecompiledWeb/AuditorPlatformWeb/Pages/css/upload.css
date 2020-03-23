@@ -1,0 +1,5 @@
+.file-box{ position:relative;width:100%; padding:5px 0px 10px 0px;}
+.txt{ height:28px; border:1px solid #cdcdcd; width:500px; text-indent:5px;}
+.select{ height:30px; border:1px solid #cdcdcd; width:503px;color: #393c40;font-size: 14px; font-family: Verdana;padding-left: 3px; margin-top:1px;}
+.file{ position:absolute; top:0; left:75px; height:30px; filter:alpha(opacity:0); opacity: 0; width:590px; cursor: pointer; margin-top:5px;}
+.uploadbtn{ width: 80px;margin-bottom:3px;}

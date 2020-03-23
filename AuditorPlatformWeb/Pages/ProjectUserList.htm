@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>渠道核查在线管理平台 - 用户管理</title>
+<link rel="shortcut icon" href="favicon.ico"/>
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">  
+  <link rel="stylesheet" href="css/layui.css"  media="all">
+  <link rel="stylesheet" href="css/common.css"  media="all">
+    
+  <script type="text/javascript" src="js/jquery_2-1-0_min.js" charset="utf-8"></script>
+  <script src="js/Common.js" type="text/javascript"></script>
+  <script src="js/layui.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/ajaxfileupload.js" type="text/javascript"></script>
+
+  <script type="text/javascript" language="javascript">
+      //搜索表单样式
+      layui.use(['form', 'layedit', 'laydate'], function () {
+          var form = layui.form()
+  , layer = layui.layer
+  , layedit = layui.layedit
+  , laydate = layui.laydate;
+          //全选
+          form.on('checkbox(allChoose)', function (data) {
+              var child = $(data.elem).parents('table').find('tbody input[type="checkbox"]');
+              child.each(function (index, item) {
+                  if (item.disabled == false) {
+                      item.checked = data.elem.checked;
+                  }
+              });
+              form.render('checkbox');
+          });
+
+      });
+
+        $(function () {
+            $.ajaxSettings.async = false;
+
+            layui.use('form', function () {
+                var form = layui.form();
+                form.on('select(ddlProvince)', function (data) {
+                    LoadCity();
+                });
+
+                form.on('select(ddlCity)', function (data) {
+                    LoadDistrict();
+                });
+
+                form.on('select(ddlUserRole)', function (data) {
+                    var roleID = $("#ddlUserRole").val();
+                    if (roleID == "4") {
+                        //访问员
+                        $("#moreCondition").show();
+                        $("#ddlDistrict").attr("disabled", false);
+                        LoadProvince();
+                    }
+                    else if (roleID == "3") {
+                        //执行督导
+                        $("#moreCondition").show();
+                        $("#ddlDistrict").attr("disabled", true);
+                        LoadProvince();
+                    }
+                    else {
+                        $("#moreCondition").hide();
+                        LoadProvince();
+                    }
+                    form.render('select');
+                });
+            });
+
+            LoadPageStatusByUserType();
+
+            $.ajaxSettings.async = true;
+        });
+
+        function LoadPageStatusByUserType() {
+
+            if (userType != 8) {
+                $("#accountStatus").hide();
+            }
+            if (userType == 1 || userType == 8 || userType == 5 || userType == 7) {
+                $("#btnDeleteAll").show();
+                $("#btnNew").show();
+                $("#btnNew2").show();
+
+                if (userType == 5) {
+                    $("#ddlUserRole").val("6");
+                    $("#ddlUserRole").attr("disabled", true);
+                }
+            }
+            else {
+                $("#btnDeleteAll").hide();
+                if (userType == 3) {
+                    $("#btnNew").show();
+                    $("#btnNew2").show();
+                    $("#ddlUserRole").val("4");
+                    $("#ddlUserRole").attr("disabled", true);
+                }
+                else {
+                    $("#btnNew").hide();
+                    $("#btnNew2").hide();
+                }
+            }
+        }
+
+        function LoadProvince() {
+            var areaID = "-999";
+            var date = new Date();
+            var url = '../Logic/BusinessConfiguration.ashx';
+            $("#ddlProvince").empty();
+            $("#ddlProvince").append("<option value=\"-999\">全部</option>");
+            $.getJSON(url, { type: "3", date: date, areaID: areaID }, function (data) {
+                $.each(data, function (i, item) {
+                    $("#ddlProvince").append("<option value=\"" + item.Code + "\">" + item.Name + "</option>");
+                });
+
+                var number = JSONLength(data);
+                if (number == 1) {
+                    $("#ddlProvince").val(data[0].Code);
+                    $("#ddlProvince").attr("disabled", true);
+                }
+
+                LoadCity();
+            });
+        }
+
+        function LoadCity() {
+            var provinceCode = $("#ddlProvince").val();
+            var date = new Date();
+            var url = '../Logic/BusinessConfiguration.ashx';
+            $("#ddlCity").empty();
+            $("#ddlCity").append("<option value=\"-999\">全部</option>");
+            $.getJSON(url, { type: "4", date: date, provinceCode: provinceCode }, function (data) {
+                $.each(data, function (i, item) {
+                    $("#ddlCity").append("<option value=\"" + item.Code + "\">" + item.Name + "</option>");
+                });
+
+                layui.use('form', function () {
+                    var form = layui.form();
+                    form.render('select');
+                });
+
+                var number = JSONLength(data);
+                if (number == 1) {
+                    $("#ddlCity").val(data[0].Code);
+                    $("#ddlCity").attr("disabled", true);
+                }
+                else if (number > 1) {
+                    $("#ddlCity").attr("disabled", false);
+                }
+
+                LoadDistrict();
+            });
+        }
+
+        function LoadDistrict() {
+            var cityCode = $("#ddlCity").val();
+            var date = new Date();
+            var url = '../Logic/BusinessConfiguration.ashx';
+            $("#ddlDistrict").empty();
+            $("#ddlDistrict").append("<option value=\"-999\">不限</option>");
+
+            $.getJSON(url, { type: "5", date: date, cityCode: cityCode }, function (data) {
+                $.each(data, function (i, item) {
+                    $("#ddlDistrict").append("<option value=\"" + item.Code + "\">" + item.Name + "</option>");
+                });
+
+                var number = JSONLength(data);
+                if (number == 1) {
+                    $("#ddlDistrict").val(data[0].Code);
+                    $("#ddlDistrict").attr("disabled", true);
+                }
+
+                layui.use('form', function () {
+                    var form = layui.form();
+                    form.render('select');
+                });
+            });
+        }
+
+        function DoDownload() {
+            var name = $("#txtUserName").val();
+            var roleID = $("#ddlUserRole").val();
+            var province = $("#ddlProvince").val();
+            var city = $("#ddlCity").val();
+            var district = $("#ddlDistrict").val();
+
+            var date = new Date();
+            var url = '../Logic/Users.ashx';
+            $.ajax({
+                url: url,
+                data: {
+                    type: 19,
+                    date: date,
+                    name: name,
+                    roleID: roleID,
+                    province: province,
+                    city: city,
+                    district: district
+                },
+                dataType: "text",
+                type: "GET",
+                traditional: true,
+                success: function (data) {
+                    if (data == "0") {
+                        layer.alert("下载失败！");
+                    }
+                    else {
+                        window.open(data, "_parent");
+                    }
+                },
+                error: function (e) {
+                    layer.alert("下载失败！");
+                }
+            });
+        }
+
+        function SearchUsers() {
+            var name = $("#txtUserName").val();
+            var roleID = $("#ddlUserRole").val();
+            var province = $("#ddlProvince").val();
+            var city = $("#ddlCity").val();
+            var district = $("#ddlDistrict").val();
+
+            var pageSize = 100;
+
+            $("#datalist").empty();
+            $("#datalist").append("<tr><td colspan=\"5\" class=\"No_Search\"><img src=\"images/loading.gif\"/>正在获取中，请耐心等待...</td></tr>");
+            var date = new Date();
+            var url = '../Logic/Users.ashx';
+            $.getJSON(url, { type: "18", date: date, name: name, roleID: roleID, province: province, city: city, district: district}, function (data) {
+                BindData(data, pageSize, 1);
+            });
+        }
+
+        function BindData(data, pageSize, pageIndex) {
+            $("#datalist").empty();
+            var perPage = pageSize;
+            var index = 0;
+            $.each(data, function (i, item) {
+                index = i + 1;
+                var currentIndex = parseInt(i / perPage + 1);
+                if (currentIndex == pageIndex) {
+                    var str = "<tr>";
+                    str += ("<td><input type=\"checkbox\" name=\"\" lay-skin=\"primary\" value=\"" + item.ID + "\" /></td>");
+                    str += ("<td>" + item.LoginName + "</td>");
+                    str += ("<td>" + item.UserName + "</td>");
+                    str += ("<td>" + item.RoleName + "</td>");
+                    str += ("<td>" + jsonDateTimeFormatWithoutSeconds(item.CreateTime) + "</td>");
+                    str += ("<td>" + item.StatusName + "</td>");
+                    str += "<td>";
+                    if (item.RoleID == 4 || item.RoleID == 6) {
+                        str += "<a href=\"javascript:void(0)\" class=\"Allmb_Opera\" onclick=\"ViewUserInfo('" + item.ID + "')\">查看信息</a>&nbsp;&nbsp;";
+                    }
+                    if (userType == "1" || userType == "8" || userType == "3" || userType == "5" || userType == "7") {
+                        str += "&nbsp;&nbsp;<a href=\"javascript:void(0)\" class=\"Allmb_Opera\" onclick=\"DeleteUser('" + item.ID + "')\">删除</a></td>";
+                    }
+                    str += "</td>";
+                    str += "</tr>";
+
+                    $("#datalist").append(str);
+                }
+            });
+
+            layui.use('form', function () {
+                var form = layui.form();
+                form.render('checkbox');
+            });
+
+            var totalNumber = index;
+            $("#txtRecordNumber").text(totalNumber);
+            var pageNumber = parseInt(totalNumber / perPage + 1);
+            if (totalNumber > 0 && totalNumber % perPage == 0) {
+                pageNumber = pageNumber - 1;
+            }
+
+            layui.use(['laypage'], function () {
+                var laypage = layui.laypage;
+                laypage({
+                    cont: 'pagecontrol', //容器。值支持id名、原生dom对象，jquery对象。【如该容器为】：<div id="page1"></div>
+                    pages: pageNumber, //通过后台拿到的总页数
+                    curr: pageIndex || 1, //当前页
+                    jump: function (obj, first) { //触发分页后的回调
+                        if (!first) { //点击跳页触发函数自身，并传递当前页：obj.curr
+                            BindData(data, pageSize, obj.curr);
+                        }
+                    }
+                });
+            });
+            if (totalNumber <= 0) {
+                $("#datalist").append("<tr><td colspan=\"5\" class=\"No_Search\">根据以上条件，没有查询到任何记录</td></tr>");
+            }
+        }
+
+        function ViewUserInfo(userID) { 
+            var url = "UserInfo2.htm?id=" + userID;
+            var title = "查看用户信息";
+            var area = ['1000px', '95%'];
+            layer.open({
+                type: 2,
+                title: title,
+                shadeClose: true,
+                area: area,
+                offset: "auto",
+                content: url,
+                shade: 0.6
+            });
+        }
+
+        function AddNewUser(roleID) {
+            var url = "SelectProjectUser.htm?typeID=" + roleID;
+            var title = "选择访问员";
+
+            var area = ['990px', '80%'];
+            layer.open({
+                type: 2,
+                title: title,
+                shadeClose: false,
+                area: area,
+                offset: "auto",
+                content: url,
+                shade: 0.6,
+                end: function () {
+                    SearchUsers();
+                }
+            });
+        }
+
+        function DeleteUser(userID) {
+            layer.confirm('您确定要删除当前用户吗？', {
+                btn: ['确定', '取消']
+            }, function (index) {
+
+                var date = new Date();
+                var url = '../Logic/Users.ashx';
+                $.ajax({
+                    url: url,
+                    data: {
+                        Type: 21,
+                        Date: date,
+                        ids: userID
+                    },
+                    dataType: "json",
+                    type: "POST",
+                    traditional: true,
+                    success: function (data) {
+                        SearchUsers();
+                        layer.close(index);
+                    },
+                    error: function () {
+                        layer.close(index);
+                    }
+                });
+
+            });
+        }
+
+        function DeleteAllSelected() {
+            layer.confirm('您确定要删除当前选中的用户吗？', {
+                btn: ['确定', '取消']
+            }, function (index) {
+                var ids = [];
+                $("#datalist").find(":checked").each(function (i, item) {
+                    var selectedID = $(item).val();
+                    ids.push(selectedID);
+                });
+                if (ids.length > 0) {
+                    var date = new Date();
+                    var url = '../Logic/Users.ashx';
+                    $.ajax({
+                        url: url,
+                        data: {
+                            Type: 21,
+                            Date: date,
+                            ids: ids
+                        },
+                        dataType: "json",
+                        type: "POST",
+                        traditional: true,
+                        success: function (data) {
+                            SearchUsers();
+                            layer.close(index);
+                        },
+                        error: function () {
+                            layer.close(index);
+                        }
+                    });
+                }
+                else {
+                    layer.alert("请选中需要删除的用户.");
+                }
+            });
+        }
+
+  
+  </script>
+    <style type="text/css">
+.UploadBtn{ width:80px;position:relative;text-align:center;overflow:hidden; border:0 none;margin:0 6px; font-size:14px; color:#fff; padding:0 5px; 
+            height:38px; line-height:38px; font-family:"微软雅黑"; display:inline-block; cursor: pointer; background-color:#383c48;opacity: 0.9; filter:alpha(opacity=90);border-radius:2px;}  
+.UploadBtn:hover{
+	opacity: 0.8; filter:alpha(opacity=80); color: #fff;
+}
+.fileupload{position:absolute; bottom:0;left:0;font-size:100px;height:130%;width:100%;z-index:1;opacity:0;filter:alpha(opacity=0); cursor: pointer;}
+  </style>
+</head>
+<body class="ManageBg">
+<!--母版页-->
+    <div id="CommonTop"></div>
+    <div id="CommonLeft"></div>
+	<script type="text/javascript">
+	    $(function () {
+	        $("#CommonTop").load("CommonTop.htm?s=" + (new Date()).toLocaleTimeString());
+	        LoadCurrentProjectLeft();
+	        $("#CommonProjectTop").load("CommonProjectTop.htm");
+	    });
+    </script>
+<!--内容页-->
+<div class="layui-tab layui-tab-brief" lay-filter="demoTitle">
+    <div id="CommonProjectTop"></div>   
+    <div class="layui-body layui-tab-content crightMain">
+        <div class="crightMainTitle">
+    		<div class="layui-tab lpaperItitle">
+			  <ul class="layui-tab-title">
+                <li class="layui-this">人员管理</li>
+			  </ul>
+			</div>
+			</div>
+    	<div class="ROnceM">
+    		<div class="crightMainSubTit">
+    		    <strong>基本条件：</strong>
+    	    </div>
+    		<div class="ROnceM_Scd mt10">
+    			<form class="layui-form" action="" onsubmit="return false;">    				
+    				<div class="layui-inline ROnceM_input">
+				      <label class="layui-form-label">用户姓名：</label>
+				      <div class="layui-input-block ROnceM_Txt">
+				        <input id="txtUserName" type="text" name="title" lay-verify="title" autocomplete="off" placeholder="默认不限" class="layui-input" />
+				      </div>
+				    </div>
+				    <div class="layui-inline ROnceM_input">
+			    	 	<label class="layui-form-label">角色类型：</label>
+					    <div class="layui-input-block ROnceM_Txt">
+					      <select id="ddlUserRole" lay-filter="ddlUserRole">
+					        <option value="-999">全部</option>
+                            <option value="4">访问员</option>
+                            <option value="6">质控员</option>
+					      </select>
+					    </div>
+			    	</div>
+				   </form>
+            <div style="float:right; margin-top: -35px;">
+    		    <button class="layui-btn" id="btnSearch" onclick="SearchUsers()">查 询</button>
+    	    </div>
+    		</div>
+    	</div>
+    	<div class="ROnceM allhide" id="moreCondition">
+    		<div class="crightMainSubTit">
+    		    <strong>更多条件：</strong>
+    	    </div>
+    		<div class="ROnceM_Scd mt10">
+    			<form class="layui-form" action="">    				
+				    <div class="layui-inline ROnceM_input">
+			    	 	<label class="layui-form-label">执行省份：</label>
+					    <div class="layui-input-block ROnceM_Txt">
+					      <select id="ddlProvince" lay-filter="ddlProvince">
+					        <option value="-999">全部</option>
+					      </select>
+					    </div>
+			    	</div>
+			    	<div class="layui-inline ROnceM_input">
+			    	 	<label class="layui-form-label">执行城市：</label>
+					    <div class="layui-input-block ROnceM_Txt">
+					     	<select id="ddlCity" lay-filter="ddlCity">
+                                <option value="-999">全部</option>
+                          	</select>
+					    </div>
+			    	</div>
+                    <div class="layui-inline ROnceM_input">
+			    	 	<label class="layui-form-label">执行区县：</label>
+					    <div class="layui-input-block  ROnceM_Txt">
+					      <select id="ddlDistrict" lay-filter="ddlDistrict">
+					        <option value="-999">全部</option>
+					      </select>
+					    </div>
+			    	</div>
+				   </form>
+    		</div>
+    	</div>
+        <hr />
+    	<div class="ROnceM">
+            <div class="crightMainSubTit">
+    		    <p><strong>结果显示：</strong>根据您输入的条件，我们为您检索到 <span id="txtRecordNumber">-</span> 条记录</p>
+    	    </div>
+    		<div class="ROnceM_Scd">
+    			<div class="layui-form layui-form-item">
+					  <table class="layui-table"  lay-even="">
+					    <thead>
+					      <tr>
+					        <th width="30px">
+                                <input type="checkbox" name="全选" lay-skin="primary" lay-filter="allChoose" />
+                            </th>
+					        <th width="100">账号</th>
+					        <th width="100">姓名</th>
+					        <th width="100">角色</th>
+                            <th width="120">创建时间</th>
+					        <th width="40">状态</th>
+                            <th width="90">操作</th>
+					      </tr> 
+					    </thead>
+					    <tbody id="datalist">
+					    </tbody>
+					  </table>
+                      <div id="pagecontrol"></div>
+					</div>
+					<div class="clearfix TableBottom">
+						<div class="fr">
+								<button class="layui-btn layui-btn-normal" onclick="DoDownload();" id="btnDownload">下载</button>
+                                <button class="layui-btn layui-btn-green" onclick="AddNewUser(4);" id="btnNew">选择访问员</button>								
+                                <button class="layui-btn layui-btn-green" onclick="AddNewUser(6);" id="btnNew2">选择质控员</button>								
+								<button class="layui-btn" id="btnDeleteAll" onclick="DeleteAllSelected();">批量删除</button>
+						</div>
+					</div>
+					
+    		</div>
+    	</div>
+	</div>
+</div>
+	<script type="text/javascript">
+	    $(function () {
+	        SearchUsers();
+	    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>渠道核查在线管理平台 - 访问员验证</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="shortcut icon" href="../Pages/favicon.ico"/>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<script type="application/x-javascript"> addEventListener("load", function() { setTimeout(hideURLbar, 0); }, false); function hideURLbar(){ window.scrollTo(0,1); } </script>
+<link href="css/style.css" rel="stylesheet" type="text/css" media="all" />
+<link href="css/font-awesome.css" rel="stylesheet"> 
+<link rel="stylesheet" href="../Pages/css/layui.css"  media="all">
+<script type="text/javascript" language="javascript" src="js/jquery.min.js"></script> 
+<script type="text/javascript" language="javascript" src="js/script.js"></script> 
+<link href="layer_mobile/need/layer.css" rel="stylesheet" type="text/css" />
+<script src="layer_mobile/layer.js" type="text/javascript"></script>
+<script type="text/javascript" language="javascript">
+
+
+    $(function () {
+
+        $.ajaxSettings.async = false;
+        
+        LoadLoginUser();
+
+        LoadProjects();
+
+        $.ajaxSettings.async = true;
+
+    });
+
+    function ShowMyPic(projectID) {
+        var index = layer.open({
+            type: 2
+            , content: '二维码生成中'
+        });
+        CreateQRCode(projectID, false);
+    }
+
+    function CreateQRCode(projectID, refresh) {
+        var date = new Date();
+        var url = '../Logic/Users.ashx';
+        $.ajax({
+            url: url,
+            data: {
+                Type: 15,
+                Date: date,
+                id: projectID,
+                refresh: refresh
+            },
+            dataType: "text",
+            type: "POST",
+            traditional: true,
+            success: function (data) {
+                if (data == "-1") {
+                    window.location = "index.htm";
+                }
+                else {
+                    document.getElementById('imgVisitorPic').src = data;
+
+                    layer.closeAll();
+                    layer.open({
+                        content: $("#picDiv").html()
+                    , btn: ['关闭', '刷新']
+                    , yes: function () {
+                        layer.closeAll();
+                    }
+                    , no: function () {
+                        CreateQRCode(projectID, true);
+                    }
+                    });
+                }
+            },
+            error: function () {
+                layer.open({
+                    content: '生成失败，请重试'
+                     , btn: '确认'
+                });
+            }
+        });
+    }
+
+    function LoadProjects() {
+        $("#projectList").empty();
+        var date = new Date();
+        var url = '../Logic/Project.ashx';
+        var pageSize = 10000;
+        $.getJSON(url, { type: "1", date: date, name: "", fromdate: "", todate: "", statusID: "" }, function (data) {
+            BindData(data, pageSize, 1);
+        });
+    }
+
+    function BindData(data, pageSize, pageIndex) {
+        $("#projectList").html("");
+        var perPage = pageSize;
+        var index = 0;
+        $.each(data, function (i, item) {
+            index = i + 1;
+            var currentIndex = parseInt(i / perPage + 1);
+            if (currentIndex == pageIndex) {
+                var str = "<tr>";
+                str += ("<td>" + index + "</td>");
+                str += ("<td>" + item.Name + "</td>");
+                str += ("<td><a href=\"javascript:void(0)\" class=\"Allmb_Opera\" onclick=\"ShowMyPic('" + item.ID + "')\">查看</a></td>");
+                str += "</tr>";
+                $("#projectList").append(str);
+            }
+        });
+        var totalNumber = data.length;
+        if (totalNumber <= 0) {
+            $("#projectList").append("<tr><td colspan=\"3\">您没有需要执行的项目</td></tr>");
+        }
+    }
+
+    function DoCancel() {
+        var date = new Date();
+        var url = '../Logic/Users.ashx';
+        $.ajax({
+            url: url,
+            data: {
+                Type: 2,
+                Date: date
+            },
+            dataType: "json",
+            type: "POST",
+            traditional: true,
+            success: function (data) {
+                window.location.href = "index.htm";
+            },
+            error: function () {
+            }
+        });
+    }
+
+    function LoadLoginUser() {
+        var date = new Date();
+        var url = '../Logic/Users.ashx';
+        $.ajax({
+            type: "get",
+            url: url,
+            data: { "type": "3", "date": date },
+            success: function (data) {
+                userID = data.ID;
+                userName = data.UserName;
+                userType = data.UserType;
+
+                if (userID <= 0) {
+                    layer.open({
+                        content: '请登录后再进行操作'
+                        , btn: '确认'
+                         , yes: function (index) {
+                             window.location = "index.htm";
+                             return;
+                         }
+                    });
+                }
+                $("#txtUserName").text(userName);
+            }
+        });
+    }
+
+  </script>
+</head>
+<body>
+	<!-- main -->
+	<div class="main-agile">
+        
+		<div id="w3ls_form" class="signin-form" style="width: 100%;">
+            <blockquote class="layui-elem-quote" style="border-left: none;">
+                欢迎您：<a style="text-decoration: underline;cursor: pointer;"><span id="txtUserName">-</span></a>
+                &nbsp;&nbsp;
+                <a href="javascript:void(0)" style="text-decoration: underline;cursor: pointer;" onclick="DoCancel()">退出</a>
+            </blockquote>
+            
+            <table class="layui-table">
+              <colgroup>
+                <col width="10%">
+                <col width="70%">
+                <col width="20%">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>NO.</th>
+                  <th>项目名称</th>
+                  <th>证件</th>
+                </tr> 
+              </thead>
+              <tbody id="projectList">
+                
+              </tbody>
+            </table>
+		</div>
+		<!-- copyright -->
+		<div class="copyright">
+			<p>©1995-2017 央视市场研究股份有限公司</p>
+		</div>
+		<!-- //copyright -->  
+	</div>
+    
+    <div id="picDiv" style=" display: none;">
+        <img id="imgVisitorPic" title="访问员二维码"/>
+    </div>	
+</body>
+</html>
